@@ -1,9 +1,7 @@
 # The Room That Remembers
 
-Playable desktop browser prototype: https://pocket-pip-preview.vercel.app/
+Desktop mystery preview hosted at https://pocket-pip-preview.vercel.app/.
 
-Open index.html through a static web server. Three.js loads from jsDelivr.
+A story opening introduces Ada's disappearance. Inspect a family photograph, restore the clock to 3:15, turn the dollhouse, collect the key, and open the door.
 
-Controls: click objects, drag horizontally to look, L toggles lantern. This is a browser adaptation; it does not implement Quest/WebXR hand tracking.
-
-Sequence: inspect the photograph with the lantern on, set the clock to 3:15, rotate the miniature house, collect the key on the cabinet and open the door.
+Controls: mouse to aim, click to inspect, drag to look, L toggles the lantern. No headset required. This browser preview does not implement WebXR.
