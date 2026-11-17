@@ -1,6 +1,6 @@
 import * as T from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js';
 const scene=new T.Scene();scene.background=new T.Color(0x080f13);scene.fog=new T.Fog(0x080f13,7,15);
-const renderer=new T.WebGLRenderer({canvas:document.querySelector('#game'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;
+const renderer=new T.WebGLRenderer({canvas:document.querySelector('#game'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
 const camera=new T.PerspectiveCamera(52,1,.05,25);camera.position.set(0,1.65,4.3);
 scene.add(new T.HemisphereLight(0x718b99,0x2d231b,.7));
 const lamp=new T.SpotLight(0xffd59a,25,15,.54,.7,1.2);scene.add(lamp);scene.add(lamp.target);lamp.castShadow=true;
@@ -28,7 +28,7 @@ mesh(new T.PlaneGeometry(.74,.57),new T.MeshBasicMaterial({map:familyTexture}),0
 const clock=new T.Group();clock.position.set(0,2.28,-2.83);scene.add(clock);
 mesh(new T.CylinderGeometry(.39,.39,.1,48),mat(0x705537),0,0,0,clock).rotation.x=Math.PI/2;
 const face=texture(c=>{c.fillStyle='#d2c5a4';c.fillRect(0,0,512,512);c.fillStyle='#302d25';c.font='32px Georgia';c.textAlign='center';for(let i=1;i<=12;i++){let a=i*Math.PI/6;c.fillText(i,256+180*Math.sin(a),267-180*Math.cos(a))}});
-mesh(new T.PlaneGeometry(.69,.69),new T.MeshBasicMaterial({map:face,transparent:false}),0,0,.06,clock);
+mesh(new T.CircleGeometry(.345,64),new T.MeshBasicMaterial({map:face,transparent:false}),0,0,.06,clock);
 const needle=box(.018,.19,.015,0x292c24,0,.08,.08,clock);
 const minutes=box(.25,.013,.015,0x292c24,.1,0,.09,clock);
 const house=new T.Group();house.position.set(.65,1.05,-1.4);scene.add(house);
@@ -48,6 +48,39 @@ const candle=new T.Group();candle.position.set(-.4,1.05,-1.3);scene.add(candle);
 const flame=mesh(new T.SphereGeometry(.035,10,10),new T.MeshBasicMaterial({color:0xffd080}),0,.25,0,candle);flame.scale.y=1.7;
 const glow=new T.PointLight(0xffa65a,1.8,3);glow.position.set(-.4,1.4,-1.3);scene.add(glow);
 const silhouette=new T.Group();scene.add(silhouette);silhouette.position.set(-2.6,1.1,-2.65);mesh(new T.SphereGeometry(.13),mat(0x101819),0,.7,0,silhouette);mesh(new T.ConeGeometry(.28,1.05,12),mat(0x101819),0,.1,0,silhouette);silhouette.visible=false;
+
+// Detailed study props, with real mesh depth and procedural surface maps.
+const brass=new T.MeshStandardMaterial({color:0xb08b47,metalness:.78,roughness:.34});
+const grain=texture(c=>{c.fillStyle='#604029';c.fillRect(0,0,512,512);let seed=21;for(let i=0;i<1500;i++){seed=(seed*16807)%2147483647;c.strokeStyle='rgba(18,8,2,'+(seed%18/100)+')';c.beginPath();c.moveTo(seed%512,0);c.bezierCurveTo(seed%512+40,150,seed%512-30,350,seed%512,512);c.stroke()}});grain.colorSpace=T.SRGBColorSpace;
+wm.map=grain;wm.roughness=.5;wm.needsUpdate=true;
+const paper=texture(c=>{c.fillStyle='#4c5140';c.fillRect(0,0,512,512);for(let x=0;x<512;x+=64)for(let y=0;y<512;y+=96){c.strokeStyle='#80724d';c.lineWidth=2;c.beginPath();c.moveTo(x+32,y);c.bezierCurveTo(x-10,y+30,x+74,y+60,x+32,y+96);c.bezierCurveTo(x-10,y+60,x+74,y+30,x+32,y);c.stroke()} });paper.wrapS=paper.wrapT=T.RepeatWrapping;paper.repeat.set(5,2.5);paper.colorSpace=T.SRGBColorSpace;
+// Replace wall surface only; props remain separate geometry.
+scene.children.filter(o=>o.isMesh&&o.geometry.type==='BoxGeometry'&&o.geometry.parameters.width===8&&o.geometry.parameters.height===4).forEach(o=>o.material=new T.MeshStandardMaterial({map:paper,roughness:.93}));
+function turnedLeg(x,z){const pts=[];for(let i=0;i<35;i++){let y=i/34*.9;let r=.065+.025*Math.sin(i*.65)+.02*Math.exp(-Math.pow(y-.2,2)/.007);pts.push(new T.Vector2(r,y))}mesh(new T.LatheGeometry(pts,20),wm,x,0,z)}
+for(const x of [-1.5,1.5])for(const z of [-1.95,-1.05])turnedLeg(x,z);
+box(3.6,.035,1.3,wm,0,1.06,-1.5);box(3.45,.035,1.22,0x9b7850,0,.88,-1.5);
+for(const x of [-1.12,0,1.12]){box(1.02,.19,.12,wm,x,.79,-.87);mesh(new T.TorusGeometry(.065,.009,8,16),brass,x,.79,-.79)}
+// Brass frame molding and clock rim.
+mesh(new T.TorusGeometry(.373,.018,10,64),brass,0,0,.07,clock);
+for(const x of [-.4,.4])for(const y of [-.32,.32]){mesh(new T.TorusGeometry(.045,.009,8,16),brass,x,y,.09,photo)}
+// Door molding gives the panels an inset rather than a flat painted rectangle.
+for(const y of [-.6,.55])for(const x of [-.44,.44])box(.025,.86,.05,0x65533a,x,y,.1,door);
+for(const y of [-1.04,-.16,.11,.99])box(.9,.025,.05,0x65533a,0,y,.1,door);
+// Dollhouse: boards, four windows, veranda, columns, steps and chimneys.
+for(let y=.08;y<.5;y+=.045)box(.635,.008,.515,0x626352,0,y,0,house);
+for(const x of [-.2,.2]){box(.12,.13,.03,0x1a292b,x,.16,.27,house);box(.012,.13,.035,0xb2a888,x,.16,.29,house)}
+box(.7,.035,.2,wm,0,.04,.34,house);for(const x of [-.29,.29])box(.022,.3,.022,0xbbaf8e,x,.2,.39,house);
+box(.7,.025,.2,0x3c4843,0,.37,.34,house);box(.2,.035,.12,wm,0,.015,.46,house);box(.08,.22,.08,0x6f5541,-.22,.69,0,house);
+// Ceiling cornice and wainscot rails.
+box(8,.12,.14,0x756a53,0,3.85,-2.84);
+for(const x of [-3.88,3.88])box(.14,.12,8,0x756a53,x,3.85,0);
+// A faded patterned rug.
+const rugtex=texture(c=>{c.fillStyle='#482c25';c.fillRect(0,0,512,512);c.strokeStyle='#958367';c.lineWidth=8;c.strokeRect(18,18,476,476);c.lineWidth=3;c.strokeRect(36,36,440,440);for(let x=60;x<460;x+=55)for(let y=60;y<460;y+=55){c.beginPath();c.moveTo(x,y-19);c.lineTo(x+16,y);c.lineTo(x,y+19);c.lineTo(x-16,y);c.closePath();c.stroke()}});
+mesh(new T.PlaneGeometry(3.4,3.6),new T.MeshStandardMaterial({map:rugtex,roughness:1}),0,-.025,1).rotation.x=-Math.PI/2;
+// Wall shelf and old book spines, each a separate object.
+box(.65,.06,2,wm,-3.55,1.15,-.7);for(let i=0;i<9;i++)box(.23,.28+.07*Math.sin(i),.09,0x453324+i*250,-3.55,1.32,-1.45+i*.17);
+// Rain lines on glass; no motion sickness or flashing effects.
+const rain=new T.Group();scene.add(rain);for(let i=0;i<55;i++){box(.003,.04+((i%5)*.015),.004,0x69838b,-3.22+(i%11)*.13,1.35+(i%13)*.11,-2.73)}
 function show(title,text,actions=[]){document.querySelector('#itemTitle').textContent=title;document.querySelector('#itemText').textContent=text;document.querySelector('#portrait').style.display=title==='A space beside you'?'block':'none';const a=document.querySelector('#actions');a.replaceChildren();for(const [label,fn] of actions){const b=document.createElement('button');b.textContent=label;b.onclick=fn;a.append(b)}document.querySelector('#inspect').classList.remove('hidden')}
 function close(){document.querySelector('#inspect').classList.add('hidden')}
 document.querySelector('#close').onclick=close;
@@ -65,5 +98,5 @@ renderer.domElement.onpointerdown=e=>{down=true;startX=last=e.clientX};
 renderer.domElement.onpointermove=e=>{pointer.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);if(down){yaw-=(e.clientX-last)*.003; pitch=Math.max(-1.1,Math.min(1.1,pitch-e.movementY*.003));last=e.clientX}};
 renderer.domElement.onpointerup=e=>{down=false;if(started&&Math.abs(e.clientX-startX)<5){const hit=ray.intersectObjects(interact,true)[0];if(hit){let o=hit.object;while(!o.userData.action)o=o.parent;o.userData.action()}}};
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}resize();addEventListener('resize',resize);
-function tick(){camera.rotation.set(pitch,yaw,0,'YXZ'); if(started){ const step=.025, dx=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0), dz=(keys.has('KeyS')?1:0)-(keys.has('KeyW')?1:0); const nx=camera.position.x+(dx*Math.cos(yaw)+dz*Math.sin(yaw))*step, nz=camera.position.z+(-dx*Math.sin(yaw)+dz*Math.cos(yaw))*step; if(!(Math.abs(nx)<1.9&&nz<-.4&&nz>-2.05)&&Math.abs(nx)<3.65&&nz>-2.55&&nz<4.1){camera.position.x=nx;camera.position.z=nz;} }lamp.position.copy(camera.position);ray.setFromCamera(pointer,camera);lamp.target.position.copy(camera.position).add(ray.ray.direction.clone().multiplyScalar(6));lamp.intensity=on?25:0;const hit=started?ray.intersectObjects(interact.filter(o=>o.visible),true)[0]:null;let label='';if(hit){let o=hit.object;while(o&&!o.userData.name)o=o.parent;label=o?o.userData.name:''}document.querySelector('#hover').textContent=label;glow.intensity=1.7+Math.sin(performance.now()*.004)*.15;renderer.render(scene,camera);requestAnimationFrame(tick)}tick();
+function tick(){camera.rotation.set(pitch,yaw,0,'YXZ'); if(started){ const step=.018, dx=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0), dz=(keys.has('KeyS')?1:0)-(keys.has('KeyW')?1:0); const nx=camera.position.x+(dx*Math.cos(yaw)+dz*Math.sin(yaw))*step, nz=camera.position.z+(-dx*Math.sin(yaw)+dz*Math.cos(yaw))*step; if(!(Math.abs(nx)<1.9&&nz<-.4&&nz>-2.05)&&Math.abs(nx)<3.65&&nz>-2.55&&nz<4.1){camera.position.x=nx;camera.position.z=nz;} }lamp.position.copy(camera.position);ray.setFromCamera(pointer,camera);lamp.target.position.copy(camera.position).add(ray.ray.direction.clone().multiplyScalar(6));lamp.intensity=on?25:0;const hit=started?ray.intersectObjects(interact.filter(o=>o.visible),true)[0]:null;let label='';if(hit){let o=hit.object;while(o&&!o.userData.name)o=o.parent;label=o?o.userData.name:''}document.querySelector('#hover').textContent=label;glow.intensity=1.7+Math.sin(performance.now()*.004)*.15;renderer.render(scene,camera);requestAnimationFrame(tick)}tick();
 
