@@ -58,6 +58,8 @@ body:not(.playing) #pockets{display:none}
 .panel p{font-size:18px;line-height:1.8;color:#c4c9bd}
 .muted{font-size:12px!important;color:#9d9d8c!important}
 #story{background:linear-gradient(90deg,#020707f0,#020707cf 47%,#02070747),url(https://raw.githubusercontent.com/Reet24-del/pocket-pip/main/web-preview/room.jpg) center/cover}
+#vrStatus{font-size:13px;color:#e5c18d}
+#story #enterVR{margin-left:8px;background:#342b20;border:1px solid #9d8559}
 #story button{background:#917446;color:#fff4dd;padding:12px 24px}
 body.caught header,body.caught #caption,body.caught #controls,body.caught #pockets,body.caught #hover{visibility:hidden}
 #caughtScene{position:fixed;inset:0;z-index:9;display:grid;place-items:center;pointer-events:none}
@@ -68,7 +70,7 @@ body.caught header,body.caught #caption,body.caught #controls,body.caught #pocke
 #caughtResult p{margin:0 0 24px;color:#c6b89f}
 #retryCaught{padding:10px 23px;border:1px solid #987953;background:#382a1c;color:#ffedcb}
 #danger{position:fixed;inset:0;pointer-events:none;opacity:0;box-shadow:inset 0 0 110px 30px #5c1017;transition:opacity .6s}
-#parcelPhoto{position:relative;height:72px;width:55px;flex-shrink:0;margin:5px 0;border:5px solid #a4967e;background:linear-gradient(112deg,transparent 32%,#b6d0d34a 45%,transparent 53%),url(https://raw.githubusercontent.com/Reet24-del/pocket-pip/main/web-preview/family.jpg) 45% 54% / 330% auto;filter:sepia(.38) grayscale(.42)}
+#parcelPhoto{position:relative;height:72px;width:55px;flex-shrink:0;margin:5px 0;border:5px solid #a4967e;background:linear-gradient(112deg,transparent 32%,#b6d0d34a 45%,transparent 53%),url(./briar-family.jpg) 45% 54% / 330% auto;filter:sepia(.38) grayscale(.42)}
 .viewing-photo article{max-height:min(430px,68dvh)}
 .viewing-photo #details{flex-wrap:wrap}
 .viewing-photo #portrait{max-width:min(100%,385px);max-height:34dvh}
@@ -111,7 +113,7 @@ body.caught header,body.caught #caption,body.caught #controls,body.caught #pocke
   <details><summary>Clues found</summary><ul id="clues"></ul></details>
   <details><summary>Navigation assistance</summary><nav id="objects" aria-label="Inspect objects"></nav></details>
 </aside>
-<div class="overlay" id="story"><div class="panel"><p class="muted">BRIAR HOUSE · 17 NOVEMBER 1928</p><h2 id="storyTitle">Your sister never left.</h2><p id="storyText">Twenty years ago, your little sister Ada disappeared from this room. The police found an open window, a stopped clock, and her dollhouse facing the wall.</p><button id="next">Continue</button><p class="muted">A short interactive mystery. Headphones recommended. Atmospheric sound; no sudden full-screen flashes. Desktop preview.</p></div></div><div id="inspect" class="inspect hidden">
+<div class="overlay" id="story"><div class="panel"><p class="muted">BRIAR HOUSE · 17 NOVEMBER 1928</p><h2 id="storyTitle">Your sister never left.</h2><p id="storyText">Twenty years ago, your little sister Ada disappeared from this room. The police found an open window, a stopped clock, and her dollhouse facing the wall.</p><button id="next">Continue</button><button id="enterVR" hidden>Enter VR</button><p id="vrStatus" role="status"></p><p class="muted">A short interactive mystery. Headphones recommended. Atmospheric sound; no sudden full-screen flashes. In VR, aim and pinch to interact.</p></div></div><div id="inspect" class="inspect hidden">
   <article aria-labelledby="itemTitle">
     <div class="inspectionToolbar">
       <h2 id="itemTitle"></h2>
@@ -119,7 +121,7 @@ body.caught header,body.caught #caption,body.caught #controls,body.caught #pocke
       <button id="close" aria-label="Close inspection" title="Close inspection (Esc)">×</button>
     </div>
     <div id="details">
-      <img id="portrait" src="https://raw.githubusercontent.com/Reet24-del/pocket-pip/main/web-preview/family.jpg" alt="Antique family portrait" hidden>
+      <img id="portrait" crossorigin="anonymous" src="./briar-family.jpg" alt="Antique family portrait" hidden>
       <div id="parcelPhoto" role="img" aria-label="A cropped photograph of Ada behind glass" hidden></div>
       <p id="itemText"></p>
     </div>
@@ -135,4 +137,7 @@ body.caught header,body.caught #caption,body.caught #controls,body.caught #pocke
     <button id="retryCaught">Try again</button>
   </div>
 </section>
-<script type="module" src="./app.js?v=photo-inventory"></script></body></html>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js","three/":"https://cdn.jsdelivr.net/npm/three@0.187.0/"}}
+</script>
+<script type="module" src="./app.js?v=immersive"></script></body></html>

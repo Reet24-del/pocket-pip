@@ -1,7 +1,11 @@
-import * as T from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js';
+import * as T from 'three';
+import {setupImmersive} from './immersive.js';
 const scene=new T.Scene();scene.background=new T.Color(0x080f13);scene.fog=new T.Fog(0x080f13,7,15);
-const renderer=new T.WebGLRenderer({canvas:document.querySelector('#game'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
+const renderer=new T.WebGLRenderer({canvas:document.querySelector('#game'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
 const camera=new T.PerspectiveCamera(52,1,.05,25);camera.position.set(0,1.65,4.3);
+const playerRig=new T.Group();
+playerRig.add(camera);
+scene.add(playerRig);
 scene.add(new T.HemisphereLight(0x718b99,0x2d231b,.7));
 const lamp=new T.SpotLight(0xffd59a,25,15,.54,.7,1.2);scene.add(lamp);scene.add(lamp.target);lamp.castShadow=true;
 let on=true,started=false,hasKey=false,ending=false,yaw=0,storyStep=0,context;
@@ -31,7 +35,7 @@ const photo=new T.Group();photo.position.set(-1.12,1.43,-1.5);photo.rotation.x=-
 box(.85,.68,.07,0x30271d,0,0,0,photo);
 for(const x of [-.42,.42])box(.055,.72,.08,0xa58b5c,x,0,.04,photo);for(const y of [-.34,.34])box(.9,.055,.08,0xa58b5c,0,y,.04,photo);
 const picture=texture(c=>{c.fillStyle='#9b927a';c.fillRect(0,0,512,512);c.fillStyle='#626758';for(let i=0;i<7;i++)c.fillRect(i*90,0,8,512);c.fillStyle='#363d35';c.fillRect(0,370,512,142);c.fillStyle='#3b3b32';c.beginPath();c.ellipse(178,330,62,140,0,0,7);c.fill();c.fillStyle='#d1b68e';c.beginPath();c.arc(178,177,44,0,7);c.fill();c.fillStyle='#574d3b';c.beginPath();c.arc(178,158,46,Math.PI,Math.PI*2);c.fill();c.strokeStyle='#ddd0b3';c.lineWidth=3;c.strokeRect(296,195,100,210)});
-const familyTexture=new T.TextureLoader().load('https://raw.githubusercontent.com/Reet24-del/pocket-pip/main/web-preview/family.jpg'); familyTexture.colorSpace=T.SRGBColorSpace;
+const familyTexture=new T.TextureLoader().load('./briar-family.jpg'); familyTexture.colorSpace=T.SRGBColorSpace;
 mesh(new T.PlaneGeometry(.74,.57),new T.MeshBasicMaterial({map:familyTexture}),0,0,.05,photo);
 const clock=new T.Group();clock.position.set(0,2.28,-2.83);study.add(clock);
 mesh(new T.CylinderGeometry(.39,.39,.1,48),mat(0x705537),0,0,0,clock).rotation.x=Math.PI/2;
@@ -541,6 +545,7 @@ function advance(){
   zoomTarget=null;
   document.querySelector('#roomName').textContent=rooms[room];
   refreshNavigation();
+  immersive.resetPosition();
   say(room===1?'The frames creak in their hooks. A name has been scratched off the register.':'A small chair is rocking. Ada’s bed is still warm.');
   thud(.16,.6,room===1?96:58,.55);
   update();
@@ -907,6 +912,9 @@ function hitObject(event){
   const bounds=renderer.domElement.getBoundingClientRect();
   pointer.set((event.clientX-bounds.left)/bounds.width*2-1,1-(event.clientY-bounds.top)/bounds.height*2);
   ray.setFromCamera(pointer,camera);
+  return hitWorld(ray);
+}
+function hitWorld(ray){
   const hit=ray.intersectObjects(scene.children,true).find(({object})=>{
     if(!object.isMesh)return false;
     for(let parent=object;parent;parent=parent.parent){
@@ -916,7 +924,7 @@ function hitObject(event){
   });
   let object=hit?.object;
   while(object&&!object.userData.action)object=object.parent;
-  return {object,mesh:hit?.object};
+  return {object,mesh:hit?.object,point:hit?.point};
 }
 let dragDistance=0;
 renderer.domElement.onpointerdown=e=>{
@@ -959,7 +967,10 @@ renderer.domElement.onpointerleave=()=>{document.querySelector('#hover').textCon
 renderer.domElement.onpointerup=e=>{
   down=false;
   if(!started||ending||dragDistance>=5)return;
-  const {object,mesh:hit}=hitObject(e);
+  activateWorld(hitObject(e));
+};
+function activateWorld({object,mesh:hit}){
+  if(!started||ending)return;
   const drawer=object?.userData.drawer;
   if(drawer&&object===inspectedObject){
     if(drawer.state==='open'&&hit.parent===key){takeKey(drawer);return;}
@@ -979,8 +990,7 @@ renderer.domElement.onpointerup=e=>{
   }
   if(object===musicBox&&selectedItem==='crank'){inspectObject(object);return;}
   if(object&&(!inspecting||drawer||object===door))inspectObject(object);
-
-};
+}
 function resize(){
   renderer.setSize(innerWidth,innerHeight);
   camera.aspect=innerWidth/innerHeight;
@@ -1057,13 +1067,16 @@ function animateCapture(now,dt){
   courierArms[1].rotation.x=stride*.72-reach*1.35;
   heldParcel.rotation.x=reach*1.28;
 
-  if(motion){
+  if(renderer.xr.isPresenting){
+    playerRig.position.copy(caughtCamera);
+    playerRig.position.y=0;
+  }else if(motion){
     camera.position.lerp(caughtCamera,1-Math.exp(-dt*9));
   }else camera.position.copy(caughtCamera);
   caughtLook.set(.08,1.37-reach*.13,silhouette.position.z);
   viewTarget.position.copy(camera.position);
   viewTarget.lookAt(caughtLook);
-  camera.quaternion.slerp(viewTarget.quaternion,motion?1-Math.exp(-dt*11):1);
+  if(!renderer.xr.isPresenting)camera.quaternion.slerp(viewTarget.quaternion,motion?1-Math.exp(-dt*11):1);
 
   const initialDarkness=motion?.72*(1-T.MathUtils.smoothstep(seconds,.12,.72)):0;
   caughtDarkness.style.opacity=String(Math.max(initialDarkness,blackout*.92));
@@ -1079,7 +1092,8 @@ function animateCapture(now,dt){
   }
 }
 
-function tick(){
+const immersive=setupImmersive({renderer,scene,camera,rig:playerRig,hitWorld,activate:activateWorld,canWalk});
+function tick(_,frame){
   const now=performance.now();
   const elapsed=(now-lastTime)/1000;
   lastTime=now;
@@ -1109,11 +1123,11 @@ function tick(){
   const rattle=Math.max(0,lockedKnobUntil-now)/420;
   doorKnob.position.x=.4+Math.sin(rattle*26)*rattle*.018;
   ada.visible=room===2&&doorState==='open'&&hinge.rotation.y<-.8;
-  if(zoomTarget){
+  if(zoomTarget&&!renderer.xr.isPresenting){
     camera.position.lerp(zoomTarget,ease);
     if(camera.position.distanceTo(zoomTarget)<.01)zoomTarget=null;
   }
-  if(started&&!inspecting&&!ending&&document.querySelector('#guide').hidden){
+  if(!renderer.xr.isPresenting&&started&&!inspecting&&!ending&&document.querySelector('#guide').hidden){
     const dx=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
     const dz=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
     const desired=new T.Vector2(dx,dz).clampLength(0,1).multiplyScalar(1.65);
@@ -1127,7 +1141,7 @@ function tick(){
     viewTarget.position.copy(camera.position);
     viewTarget.lookAt(lookTarget);
   }else viewTarget.rotation.set(pitch,yaw,0,'YXZ');
-  if(caughtAt===null)camera.quaternion.slerp(viewTarget.quaternion,1-Math.exp(-dt*14));
+  if(caughtAt===null&&!renderer.xr.isPresenting)camera.quaternion.slerp(viewTarget.quaternion,1-Math.exp(-dt*14));
 
 
   if(caughtAt===null&&silhouette.visible&&threat>0){
@@ -1149,10 +1163,11 @@ function tick(){
   danger.style.opacity=String(started&&!ending?Math.min(.72,threat*.12+(remaining<=60?.2:0)):0);
   lamp.intensity=on?25:0;
   if(caughtAt!==null)animateCapture(now,dt);
-  lamp.position.copy(camera.position);
-  lamp.target.position.copy(camera.position).add(camera.getWorldDirection(activeThreat).multiplyScalar(6));
+  immersive.render(frame);
+  const lightView=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
+  lightView.getWorldPosition(lamp.position);
+  lamp.target.position.copy(lamp.position).add(lightView.getWorldDirection(activeThreat).multiplyScalar(6));
   glow.intensity=1.7+Math.sin(now*.004)*.15;
   renderer.render(scene,camera);
-  requestAnimationFrame(tick);
 }
-tick();
+renderer.setAnimationLoop(tick);
