@@ -42,27 +42,33 @@ scene.add(cabinet);
 for(const x of [-.3,.3])box(.055,.8,.49,wm,x,0,0,cabinet);
 for(const y of [-.38,.39])box(.69,.055,.54,wm,0,y,0,cabinet);
 box(.59,.8,.04,wm,0,0,-.23,cabinet);
-box(.58,.51,.48,wm,0,-.12,0,cabinet);
-for(const y of [-.27,-.02]){
-  box(.58,.215,.045,wm,0,y,.251,cabinet);
-  box(.13,.035,.04,0xbca268,0,y,.288,cabinet);
-}
+const drawerNames=['Top drawer','Middle drawer','Bottom drawer'];
+const drawerTravel={closed:0,nudged:.12,open:.57};
+const drawers=[.25,-.01,-.27].map((height,index)=>{
+  const tray=new T.Group();
+  const front=new T.Group();
+  tray.position.y=height;
+  tray.add(front);
+  cabinet.add(tray);
+  box(.57,.205,.055,wm,0,0,.254,front);
+  box(.48,.13,.018,0x715137,0,0,.288,front);
+  const handle=mesh(new T.TorusGeometry(.054,.012,10,24),mat(0xbc9656),0,0,.32,front);
+  handle.scale.y=.54;
+  box(.53,.028,.44,wm,0,-.083,.012,tray);
+  for(const x of [-.253,.253])box(.032,.12,.44,wm,x,-.022,.012,tray);
+  box(.53,.12,.027,wm,0,-.022,-.204,tray);
 
-const drawer=new T.Group();
-drawer.position.set(0,.25,0);
-cabinet.add(drawer);
-box(.57,.205,.055,wm,0,0,.254,drawer);
-box(.48,.13,.018,0x715137,0,0,.288,drawer);
-const handle=mesh(new T.TorusGeometry(.054,.012,10,24),mat(0xbc9656),0,0,.32,drawer);
-handle.scale.y=.54;
-box(.53,.028,.44,wm,0,-.083,.012,drawer);
-for(const x of [-.253,.253])box(.032,.12,.44,wm,x,-.022,.012,drawer);
-box(.53,.12,.027,wm,0,-.022,-.204,drawer);
+  const light=new T.PointLight(0xffdcaa,1.05,1.65);
+  light.position.set(.12,.55,.7);
+  light.visible=false;
+  tray.add(light);
+  return {tray,front,light,name:drawerNames[index],state:'closed'};
+});
 
 const letter=new T.Group();
 letter.position.set(-.09,-.064,.04);
 letter.rotation.y=.17;
-drawer.add(letter);
+drawers[0].tray.add(letter);
 box(.19,.009,.24,0xd1b68a,0,0,0,letter);
 const handwriting=texture(c=>{
   c.fillStyle='#cab087';
@@ -81,17 +87,33 @@ mesh(new T.PlaneGeometry(.18,.23),new T.MeshBasicMaterial({map:handwriting}),0,.
 const key=new T.Group();
 key.position.set(.065,-.051,-.032);
 key.rotation.set(-Math.PI/2,0,.15);
-drawer.add(key);
+drawers[0].tray.add(key);
 mesh(new T.TorusGeometry(.032,.009,12,24),mat(0xd1ad59),0,0,0,key);
 box(.102,.014,.016,0xd1ad59,.08,0,0,key);
 for(const x of [.099,.124])box(.013,.029,.014,0xd1ad59,x,-.013,0,key);
 key.visible=false;
-let drawerOpen=false,inspectedObject=null;
-const drawerLamp=new T.PointLight(0xffdcaa,1.05,1.65);
-drawerLamp.position.set(.12,.55,.7);
-drawer.add(drawerLamp);
-drawerLamp.visible=false;
-const door=new T.Group();door.position.set(2.6,1.35,-2.84);scene.add(door);box(1.15,2.65,.09,0x22352c,0,0,0,door);for(let y of [-.6,.55])box(.82,.8,.04,0x18291f,0,y,.07,door);mesh(new T.SphereGeometry(.045),mat(0xbfa069),.4,-.1,.15,door);
+// A transparent hit surface makes the key's bow and shaft one clickable target.
+const keyHit=mesh(new T.PlaneGeometry(.21,.13),new T.MeshBasicMaterial({
+  transparent:true,opacity:0,depthWrite:false,
+}),.052,-.008,.012,key);
+keyHit.castShadow=false;
+keyHit.receiveShadow=false;
+let inspectedObject=null;
+
+const door=new T.Group();
+door.position.set(2.6,1.35,-2.84);
+scene.add(door);
+const doorway=box(1.12,2.63,.02,0x080e16,0,0,-.064,door);
+const hinge=new T.Group();
+hinge.position.x=-.575;
+door.add(hinge);
+const doorLeaf=new T.Group();
+doorLeaf.position.x=.575;
+hinge.add(doorLeaf);
+box(1.15,2.65,.09,0x22352c,0,0,0,doorLeaf);
+for(const y of [-.6,.55])box(.82,.8,.04,0x18291f,0,y,.07,doorLeaf);
+mesh(new T.SphereGeometry(.045),mat(0xbfa069),.4,-.1,.15,doorLeaf);
+let doorState='closed';
 for(let x of [1.95,3.25])box(.13,2.85,.17,0x7b6a4d,x,1.4,-2.8);box(1.42,.13,.17,0x7b6a4d,2.6,2.8,-2.8);
 const win=new T.Group();win.position.set(-2.55,2,-2.8);scene.add(win);box(1.4,1.65,.07,0x132b35,0,0,0,win);for(let x of [-.75,0,.75])box(.06,1.8,.1,0x7d725c,x,0,.04,win);box(1.55,.06,.1,0x7d725c,0,0,.04,win);
 for(let y of [-.88,.88])box(1.55,.06,.1,0x7d725c,0,y,.04,win);
@@ -143,8 +165,8 @@ for(const x of [-1.12,0,1.12]){box(1.02,.19,.12,wm,x,.79,-.87);mesh(new T.TorusG
 mesh(new T.TorusGeometry(.373,.018,10,64),brass,0,0,.07,clock);
 for(const x of [-.4,.4])for(const y of [-.32,.32]){mesh(new T.TorusGeometry(.045,.009,8,16),brass,x,y,.09,photo)}
 // Door molding gives the panels an inset rather than a flat painted rectangle.
-for(const y of [-.6,.55])for(const x of [-.44,.44])box(.025,.86,.05,0x65533a,x,y,.1,door);
-for(const y of [-1.04,-.16,.11,.99])box(.9,.025,.05,0x65533a,0,y,.1,door);
+for(const y of [-.6,.55])for(const x of [-.44,.44])box(.025,.86,.05,0x65533a,x,y,.1,doorLeaf);
+for(const y of [-1.04,-.16,.11,.99])box(.9,.025,.05,0x65533a,0,y,.1,doorLeaf);
 // Dollhouse: boards, four windows, veranda, columns, steps and chimneys.
 for(let y=.08;y<.5;y+=.045)box(.635,.008,.515,0x626352,0,y,0,house);
 for(const x of [-.2,.2]){box(.12,.13,.03,0x1a292b,x,.16,.27,house);box(.012,.13,.035,0xb2a888,x,.16,.29,house)}
@@ -160,14 +182,62 @@ mesh(new T.PlaneGeometry(3.4,3.6),new T.MeshStandardMaterial({map:rugtex,roughne
 box(.65,.06,2,wm,-3.55,1.15,-.7);for(let i=0;i<9;i++)box(.23,.28+.07*Math.sin(i),.09,0x453324+i*250,-3.55,1.32,-1.45+i*.17);
 // Rain lines on glass; no motion sickness or flashing effects.
 const rain=new T.Group();scene.add(rain);for(let i=0;i<55;i++){box(.003,.04+((i%5)*.015),.004,0x69838b,-3.22+(i%11)*.13,1.35+(i%13)*.11,-2.73)}
-function show(title,text,actions=[]){document.querySelector('#itemTitle').textContent=title;document.querySelector('#itemText').textContent=text;document.querySelector('#portrait').style.display=title==='A space beside you'?'block':'none';document.querySelector('#parcelPhoto').hidden=!['A parcel arrives','A parcel from the courier'].includes(title);const a=document.querySelector('#actions');a.replaceChildren();for(const [label,fn] of actions){const b=document.createElement('button');b.textContent=label;b.onclick=fn;a.append(b)}document.querySelector('#inspect').classList.remove('hidden')}
-function close(){if(!inspecting)return;inspectedObject=null;document.querySelector('#inspect').classList.add('hidden');inspecting=false;zoomTarget=home.position.clone();lookTarget=null;yaw=home.yaw;pitch=home.pitch;}
+const inspection=document.querySelector('#inspect');
+const details=document.querySelector('#details');
+const detailsButton=document.querySelector('#toggleDetails');
+function setDetailsVisible(visible){
+  details.hidden=!visible;
+  detailsButton.setAttribute('aria-expanded',String(visible));
+  detailsButton.textContent=visible?'Hide description':'Show description';
+}
+detailsButton.onclick=()=>setDetailsVisible(details.hidden);
+
+function show(title,text,actions=[]){
+  document.querySelector('#itemTitle').textContent=title;
+  document.querySelector('#itemText').textContent=text;
+  document.querySelector('#portrait').hidden=title!=='A space beside you';
+  document.querySelector('#parcelPhoto').hidden=!['A parcel arrives','A parcel from the courier'].includes(title);
+  const buttons=document.querySelector('#actions');
+  buttons.replaceChildren();
+  for(const [label,fn] of actions){
+    const button=document.createElement('button');
+    button.textContent=label;
+    button.onclick=fn;
+    buttons.append(button);
+  }
+  setDetailsVisible(true);
+  inspection.classList.remove('hidden');
+  document.body.classList.add('inspecting');
+}
+function shutProps(){
+  for(const drawer of drawers)drawer.state='closed';
+  doorState='closed';
+  renderer.domElement.style.cursor='';
+  document.querySelector('#hover').textContent='';
+}
+function close(){
+  inspection.classList.add('hidden');
+  document.body.classList.remove('inspecting');
+  shutProps();
+  if(!inspecting)return;
+  inspecting=false;
+  inspectedObject=null;
+  zoomTarget=home.position.clone();
+  lookTarget=null;
+  yaw=home.yaw;
+  pitch=home.pitch;
+}
 document.querySelector('#close').onclick=close;
 let room=0,remaining=480,mistakes=0,solved=false,parcelCount=0;
 const gallery=new T.Group();scene.add(gallery);gallery.visible=false;for(let i=0;i<3;i++){box(.65,.9,.07,0x97764a,-2+i,2.5,-2.75,gallery);}const nursery=new T.Group();scene.add(nursery);nursery.visible=false;box(1.5,.12,.8,wm,-2,.6,-1.5,nursery);for(let i=0;i<9;i++)box(.04,.65,.04,0x9e8c70,-2.7+i*.17,.9,-1.1,nursery);
 const rooms=['The study','The portrait gallery','Ada’s nursery'];
 const home={position:camera.position.clone(),yaw:0,pitch:0}; let inspecting=false,zoomTarget=null,lookTarget=null,lastTime=performance.now();
-function advance(){close();room++;hintLevel=0;drawerOpen=false;drawer.position.z=0;drawerLamp.visible=false;solved=false;camera.position.copy(home.position);yaw=pitch=0;document.querySelector('#roomName').textContent=rooms[room];found=clockSet=houseSet=hasKey=false;key.visible=false;gallery.visible=room===1;nursery.visible=room===2;if(room===1){say('The door opens into a gallery. Ada left you a sequence, not an hour.');house.visible=true;scene.background=new T.Color(0x14101a);}else{say('Ada’s nursery. The music box remembers her way home.');house.visible=true;scene.background=new T.Color(0x111924);}update();}
+function advance(){close();room++;hintLevel=0;
+  for(const drawer of drawers)drawer.tray.position.z=0;
+  hinge.rotation.y=0;
+  drawers[puzzles[room].letterDrawer].tray.add(letter);
+  drawers[puzzles[room].keyDrawer].tray.add(key);
+  solved=false;camera.position.copy(home.position);yaw=pitch=0;document.querySelector('#roomName').textContent=rooms[room];found=clockSet=houseSet=hasKey=false;key.visible=false;gallery.visible=room===1;nursery.visible=room===2;if(room===1){say('The door opens into a gallery. Ada left you a sequence, not an hour.');house.visible=true;scene.background=new T.Color(0x14101a);}else{say('Ada’s nursery. The music box remembers her way home.');house.visible=true;scene.background=new T.Color(0x111924);}update();}
 function finish(){ending=true;close();document.querySelector('#story').style.display='flex';document.querySelector('#storyTitle').textContent='You found Ada.';document.querySelector('#storyText').textContent='Beyond the last door, Ada opens her eyes. You take her hand. Three rooms, '+mistakes+' wrong answers, '+Math.ceil(remaining)+' seconds left. Outside, the courier drops his last parcel and disappears.';document.querySelector('#next').textContent='Play again';}
 function fail(){
   if(ending)return;
@@ -196,53 +266,132 @@ function fail(){
   update();
 }
 register(photo,'Inspect photograph',()=>{found=true;show(room===0?'A space beside you':'Ada’s next clue',room===0?'The family photograph has an empty outline. Scratched into its frame: “She waited until 3:15.”':room===1?'Three portraits hang in order: a moon, a door, a candle. Their frame numbers are 2, 4, 1. The letter says: “Read left to right.”':'Ada’s lullaby: “Rain, candle, moon. Then home.”');update()});
-register(clock,'Solve room puzzle',()=>{if(!found){show('Find the clue first','Inspect the photograph or read Ada’s letter in the drawer. Use Hint if you are stuck.');return}show(room===0?'Set the clock':room===1?'The gallery lock':'The music box',room===0?'Choose the hour scratched into the photograph.':room===1?'Choose the frame numbers, left to right.':'Choose the order in Ada’s lullaby.',(room===0?['12:00','3:15','6:30']:room===1?['124','241','412']:['Moon, rain, candle','Rain, candle, moon','Candle, moon, rain']).map((label,i)=>[label,()=>{if(i!==1){fail();return}solved=true;key.visible=!hasKey;close();say('The lock clicks. Search the drawer for the room key.');update()}]));});
+const puzzles=[
+  {
+    title:'Set the clock', slots:['Hour','Minute'],
+    choices:[['12','3','6','9'],['00','15','30','45']], answer:['3','15'],
+    letterDrawer:0,keyDrawer:0,
+    letter:'“The third hour had struck. I counted a quarter of the clock before he came.”',
+    hints:['Ada’s photograph and the letter in the top drawer remember the time.','A quarter of an hour is 15 minutes.','Set Hour to 3 and Minute to 15.'],
+  },
+  {
+    title:'The gallery lock', slots:['First','Second','Third'],
+    choices:['1','2','4'], answer:['2','4','1'],
+    letterDrawer:1,keyDrawer:2,
+    letter:'“The moon comes first, then the door, then the candle. Read the numbers on their frames.”',
+    hints:['The letter in the middle drawer gives you the order of the portraits.','Inspect the photograph for the frame numbers. The moon is 2.','Try 2, then 4, then 1.'],
+  },
+  {
+    title:'The music box', slots:['First','Second','Third'],
+    choices:['Moon','Rain','Candle'], answer:['Rain','Candle','Moon'],
+    letterDrawer:2,keyDrawer:1,
+    letter:'“Rain on the windows. A candle in the dark. The moon brought me home.”',
+    hints:['Look for Ada’s lullaby in the bottom drawer or inspect the dollhouse.','Start with what you hear at the window.','Choose Rain, Candle, then Moon.'],
+  },
+];
+
+function showLock(sequence=[]){
+  const puzzle=puzzles[room];
+  if(solved){
+    show('The lock is open','You heard metal fall into one of the drawers. Nudge them to find it.');
+    return;
+  }
+  const slot=sequence.length;
+  const complete=slot===puzzle.slots.length;
+  const options=Array.isArray(puzzle.choices[0])?puzzle.choices[slot]:puzzle.choices;
+  const actions=complete
+    ?[['Try combination',()=>{
+      if(!sequence.every((value,index)=>value===puzzle.answer[index])){fail();return;}
+      solved=true;
+      close();
+      say('The lock clicks. You hear brass drop into one of the drawers.');
+      update();
+    }]]
+    :options.map(value=>[value,()=>showLock([...sequence,value])]);
+  if(slot>0)actions.push(['Clear',()=>showLock()]);
+  const slots=puzzle.slots.map((label,index)=>`${label} · ${sequence[index]??'—'}`).join('   /   ');
+  show(puzzle.title,slots+'\n'+(complete?'Submit this combination.':'Choose '+puzzle.slots[slot].toLowerCase()+'.'),actions);
+}
+register(clock,'Solve room puzzle',()=>showLock());
 register(house,'Inspect dollhouse / music box',()=>show(
   room===2?'Music box':'The little house',
-  solved?'A tiny brass latch clicks open. Check Ada’s drawer for the room key.':
-    room===2?'A lullaby is scratched underneath: rain, candle, moon. The clock is the combination lock.':
-    'The miniature door has a brass lock. Restore the room puzzle first.'
+  room===2?'Three notes are scratched underneath: rain, candle, moon. Enter them at the room lock.':
+    'There’s a tiny brass latch on the model. Its mechanism runs into the cabinet.'
 ));
-register(door,'Open next door',()=>{if(!hasKey){show('The locked door','The courier is outside. Solve the room and take its key.');return}if(room<2)advance();else finish()});
-const drawerLetters=[
-  '“I waited until 3:15. Turn the clock back to that hour.”',
-  '“Moon, door, candle. Read the frames from left to right: 2, 4, 1.”',
-  '“Rain, candle, moon. Sing it, then turn the lock.”',
-];
-function takeKey(){
-  if(!solved||hasKey)return;
+
+const doorAngles={closed:0,nudged:-.14,open:-1.32};
+function stepThrough(){
+  if(room<2)advance();
+  else finish();
+}
+function operateDoor(){
+  if(doorState==='open'){
+    show('The door is open','Something moves in the dark beyond.',[
+      ['Step through',stepThrough],
+      ['Shut door',close],
+    ]);
+  }else if(hasKey){
+    doorState='nudged';
+    show('The door gives','The brass key turns. You can push the door the rest of the way.',[
+      ['Open door',()=>{doorState='open';operateDoor();}],
+      ['Shut door',close],
+    ]);
+  }else{
+    doorState='nudged';
+    show('The chain catches','The door moves a little, then catches. The room lock releases a brass key.',[
+      ['Shut door',close],
+    ]);
+  }
+}
+register(door,'Nudge door',operateDoor);
+
+function showLetter(){
+  found=true;
+  show('Ada’s letter',puzzles[room].letter,[['Shut drawer',close]]);
+  update();
+}
+function takeKey(drawer){
+  if(drawer.state!=='open'||drawer.tray!==key.parent||!solved||hasKey)return;
   hasKey=true;
   key.visible=false;
-  show('The room key','You lift a cold brass key from the drawer. It fits the door.');
+  show('The room key','You lift the brass key from the drawer. It fits the door.',[['Shut drawer',close]]);
   say('You have the key. Get to the door.');
   update();
 }
-function openDrawer(){
-  drawerOpen=true;
-  drawerLamp.visible=true;
-  const target=cabinet.getWorldPosition(new T.Vector3());
-  lookTarget=target.clone().add(new T.Vector3(innerWidth<760?0:.13,.22,.54));
-  const narrow=innerWidth<760;
-  zoomTarget=target.clone().add(new T.Vector3(narrow?0:-.37,narrow?1.43:1.32,1.35));
-  show('Inside the drawer',solved&&!hasKey
-    ?'Ada’s letter is still here. A brass key has dropped into the tray.'
-    :'A folded letter lies against the dark wood.',drawerActions());
+function frameDrawer(drawer){
+  const target=cabinet.position.clone().add(new T.Vector3(0,drawer.tray.position.y,0));
+  const front=drawer.state==='open'?1.38:1.19;
+  zoomTarget=target.clone().add(new T.Vector3(-.14,1.17,front));
+  lookTarget=target.add(new T.Vector3(-.055,-.16,drawer.state==='open'?.62:.33));
 }
-function drawerActions(){
-  const actions=[['Read Ada’s letter',()=>{
-    found=true;
-    show('Ada’s letter',drawerLetters[room],solved&&!hasKey?[['Take brass key',takeKey]]:[]);
-    update();
-  }]];
-  if(solved&&!hasKey)actions.push(['Take brass key',takeKey]);
-  return actions;
+function setDrawer(drawer,state){
+  drawer.state=state;
+  const hasVisibleKey=state==='open'&&drawer.tray===key.parent&&solved&&!hasKey;
+  frameDrawer(drawer);
+  const actions=[['Shut drawer',close]];
+  if(state==='nudged'){
+    actions.unshift(['Pull open',()=>setDrawer(drawer,'open')]);
+    show(drawer.name,'The drawer moves a little. Pull again to see inside.',actions);
+    return;
+  }
+  if(hasVisibleKey)actions.unshift(['Take brass key',()=>takeKey(drawer)]);
+  if(drawer.tray===letter.parent)actions.unshift(['Read Ada’s letter',showLetter]);
+  const contents=[
+    drawer.tray===letter.parent?'Ada’s letter rests in the tray.':'',
+    hasVisibleKey?'Click the brass key to pick it up.':'',
+  ].filter(Boolean);
+  show(drawer.name,contents.join(' ')||'The tray is empty.',actions);
 }
-register(cabinet,'Open drawer',openDrawer);
+for(const drawer of drawers){
+  register(drawer.tray,'Nudge '+drawer.name.toLowerCase(),()=>setDrawer(drawer,'nudged'));
+  drawer.tray.userData.drawer=drawer;
+}
+
 register(win,'Inspect window',()=>show('Beyond the glass',room===2?'A small handprint appears in the mist. Ada is still alive.':'Fresh footprints stop beneath the window. A courier has been watching the house.'));
 register(candle,'Inspect candle',()=>show('Warm wax','Someone was here moments ago. The wax is still warm.'));
 // Every visible furnishing can be inspected; searching is safe.
 const labeled=new Set(interact);for(const obj of [...scene.children]){if(obj.isMesh&&!labeled.has(obj))register(obj,'Search '+(room===0?'room':'corner'),()=>show('A quiet corner','Dust, scratches, and signs of someone passing. The photograph, clock, drawer, and door carry the strongest clues.'));}
-function update(){document.querySelector('#threat').textContent=threatLabels[threat];document.querySelector('#objective').textContent=!found?'Find a clue: inspect the photograph or drawer.':!solved?'Use the clue to solve the room lock.':!hasKey?'The lock is open. Search the drawer for a key.':'You have the key. Open the door.';document.querySelector('#progress').textContent='Room '+(room+1)+' / 3 · '+mistakes+' mistakes';}
+function update(){document.querySelector('#threat').textContent=threatLabels[threat];document.querySelector('#objective').textContent=!found?'Inspect the photograph or search the drawers for clues.':!solved?'Use the clue to solve the room lock.':!hasKey?'The lock is open. Search the drawers for the brass key.':'You have the key. Open the door.';document.querySelector('#progress').textContent='Room '+(room+1)+' / 3 · '+mistakes+' mistakes';}
 function thud(volume,delay,frequency,pan=0){
   if(!context||document.querySelector('#sound').getAttribute('aria-pressed')==='false')return;
   const time=context.currentTime+delay;
@@ -269,9 +418,20 @@ document.querySelector('#sound').onclick=e=>{
   if(enabled)context?.resume();
 };
 document.querySelector('#next').onclick=()=>{if(ending){location.reload();return}if(storyStep++===0){document.querySelector('#storyTitle').textContent='Tonight, she wrote to you.';document.querySelector('#storyText').textContent='An envelope arrived without a stamp. Inside was Ada’s handwriting: “I did not climb out. You turned the house. Come back before the clock remembers.” You unlock Briar House. Three knocks come from inside.';document.querySelector('#next').textContent='Take the lantern';}else{started=true;document.querySelector('#story').style.display='none';if(window.AudioContext){context=new AudioContext();context.resume().catch(()=>{});}playKnock(.14);nextStep=performance.now()+6500;say('The photograph on the desk. Wasn’t someone standing beside you?');}};
-document.querySelector('#light').onclick=()=>{on=!on;document.querySelector('#light').textContent='Lantern '+(on?'on':'off')};addEventListener('keydown',e=>{if(e.code==='Escape')close();if(e.code==='KeyL')document.querySelector('#light').click();if(e.code==='KeyR')location.reload()});
+document.querySelector('#light').onclick=()=>{on=!on;document.querySelector('#light').textContent='Lantern '+(on?'on':'off')};addEventListener('keydown',e=>{if(e.code==='Escape'&&!inspection.classList.contains('hidden'))close();if(e.code==='KeyL')document.querySelector('#light').click();if(e.code==='KeyR')location.reload()});
 let hintLevel=0;
-document.querySelector('#hint').onclick=()=>{hintLevel++;const level=Math.min(hintLevel,3);const answer=room===0?'3:15':room===1?'241':'Rain, candle, moon';show('Hint '+level+' / 3',!found?(level===1?'Ada left a clue on the desk.':level===2?'Inspect the photograph, or search the drawer.':'Click Photograph below, then Room lock.') : !solved?(level===1?'Read the clue carefully; its order matters.':level===2?'The answer is written in the photograph or letter.':'Choose '+answer+' at the room lock.') : !hasKey?'Search the drawer. The key is available now.':'Open the door to continue. Hints cost no time.');};
+document.querySelector('#hint').onclick=()=>{
+  if(!started||ending)return;
+  const puzzle=puzzles[room];
+  if(hasKey){
+    show('Hint','Use the brass key at the door, then step through.');
+  }else if(solved){
+    show('Hint','Nudge the '+drawerNames[puzzle.keyDrawer].toLowerCase()+' and pull it open to find the brass key.');
+  }else{
+    hintLevel=Math.min(hintLevel+1,puzzle.hints.length);
+    show('Hint '+hintLevel+' / '+puzzle.hints.length,puzzle.hints[hintLevel-1]);
+  }
+};
 function inspectObject(object){
   if(!started||ending)return;
   keys.clear();
@@ -280,19 +440,39 @@ function inspectObject(object){
     home.yaw=yaw;
     home.pitch=pitch;
   }
+  if(inspectedObject===object&&object.userData.drawer){
+    const drawer=object.userData.drawer;
+    if(drawer.state==='nudged')setDrawer(drawer,'open');
+    else if(drawer.state==='open')close();
+    else setDrawer(drawer,'nudged');
+    return;
+  }
+  if(inspectedObject!==object)shutProps();
   inspecting=true;
   inspectedObject=object;
   lookTarget=object.getWorldPosition(new T.Vector3());
   zoomTarget=lookTarget.clone().add(new T.Vector3(0,.12,1.15));
+  if(object===door){
+    lookTarget.y-=.17;
+    zoomTarget=door.position.clone().add(new T.Vector3(-.12,.14,2.35));
+  }
   object.userData.action();
 }
-for(const [label,obj] of [['Photograph',photo],['Room lock',clock],['Dollhouse',house],['Drawer',cabinet],['Door',door]]){const b=document.createElement('button');b.textContent=label;b.onclick=()=>inspectObject(obj);document.querySelector('#objects').append(b);}
+for(const [label,object] of [
+  ['Photograph',photo],['Room lock',clock],['Dollhouse',house],['Door',door],
+  ...drawers.map(drawer=>[drawer.name,drawer.tray]),
+]){
+  const button=document.createElement('button');
+  button.textContent=label;
+  button.onclick=()=>inspectObject(object);
+  document.querySelector('#objects').append(button);
+}
 const pointer=new T.Vector2();const ray=new T.Raycaster();let down=false,last=0,pitch=0; const keys=new Set(); addEventListener('keydown',e=>keys.add(e.code)); addEventListener('keyup',e=>keys.delete(e.code)); addEventListener('blur',()=>keys.clear());
 function hitObject(event){
   const bounds=renderer.domElement.getBoundingClientRect();
   pointer.set((event.clientX-bounds.left)/bounds.width*2-1,1-(event.clientY-bounds.top)/bounds.height*2);
   ray.setFromCamera(pointer,camera);
-  const hit=ray.intersectObjects(interact.filter(object=>object.visible),true)[0];
+  const hit=ray.intersectObjects(interact,true).find(({object})=>object.parent!==key||key.visible);
   let object=hit?.object;
   while(object&&!object.userData.action)object=object.parent;
   return {object,mesh:hit?.object};
@@ -305,8 +485,17 @@ renderer.domElement.onpointerdown=e=>{
   renderer.domElement.setPointerCapture(e.pointerId);
 };
 renderer.domElement.onpointermove=e=>{
-  const {object}=hitObject(e);
-  document.querySelector('#hover').textContent=started&&!ending&&!inspecting?(object?.userData.name||''):'';
+  const {object,mesh:hit}=hitObject(e);
+  const drawer=object?.userData.drawer;
+  const label=drawer?.state==='open'&&hit?.parent===key?'Take brass key':
+    drawer?.state==='open'&&hit?.parent===letter?'Read Ada’s letter':
+    drawer?.state==='nudged'?'Pull open':
+    drawer?.state==='open'&&hit?.parent===drawer.front?'Shut drawer':
+    object===door&&doorState==='open'?(hit===doorway?'Step through':'Shut door'):
+    object===door&&doorState==='nudged'&&hasKey?'Open door':
+    object?.userData.name;
+  document.querySelector('#hover').textContent=started&&!ending?(label||''):'';
+  renderer.domElement.style.cursor=started&&!ending&&label?'pointer':'';
   if(down&&!inspecting){
     dragDistance+=Math.abs(e.clientX-last)+Math.abs(e.movementY);
     yaw-=(e.clientX-last)*.003;
@@ -319,12 +508,23 @@ renderer.domElement.onpointerup=e=>{
   down=false;
   if(!started||ending||dragDistance>=5)return;
   const {object,mesh:hit}=hitObject(e);
-  if(inspectedObject===cabinet&&object===cabinet){
-    if(key.visible&&hit.parent===key)takeKey();
-    else if(hit.parent===letter)drawerActions()[0][1]();
+  const drawer=object?.userData.drawer;
+  if(drawer&&object===inspectedObject){
+    if(drawer.state==='open'&&hit.parent===key){takeKey(drawer);return;}
+    if(drawer.state==='open'&&hit.parent===letter){showLetter();return;}
+    if(drawer.state!=='open'||hit.parent===drawer.front)inspectObject(object);
     return;
   }
-  if(object&&!inspecting)inspectObject(object);
+  if(object===door&&inspectedObject===door){
+    if(doorState==='open'){
+      if(hit===doorway)stepThrough();
+      else close();
+    }
+    else if(hasKey){doorState='open';operateDoor();}
+    return;
+  }
+  if(object&&(!inspecting||drawer||object===door))inspectObject(object);
+
 };
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}resize();addEventListener('resize',resize);
 const timer=document.querySelector('#timer');
@@ -359,7 +559,12 @@ function tick(){
   }
 
   const ease=1-Math.exp(-dt*9);
-  drawer.position.z=T.MathUtils.lerp(drawer.position.z,drawerOpen?.57:0,ease);
+  for(const drawer of drawers){
+    drawer.tray.position.z=T.MathUtils.lerp(drawer.tray.position.z,drawerTravel[drawer.state],ease);
+    drawer.light.visible=drawer.state!=='closed'||drawer.tray.position.z>.04;
+  }
+  key.visible=solved&&!hasKey&&key.parent.position.z>.23;
+  hinge.rotation.y=T.MathUtils.lerp(hinge.rotation.y,doorAngles[doorState],ease);
   if(zoomTarget){
     camera.position.lerp(zoomTarget,ease);
     if(camera.position.distanceTo(zoomTarget)<.01)zoomTarget=null;
