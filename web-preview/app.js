@@ -4,7 +4,7 @@ const renderer=new T.WebGLRenderer({canvas:document.querySelector('#game'),antia
 const camera=new T.PerspectiveCamera(52,1,.05,25);camera.position.set(0,1.65,4.3);
 scene.add(new T.HemisphereLight(0x718b99,0x2d231b,.7));
 const lamp=new T.SpotLight(0xffd59a,25,15,.54,.7,1.2);scene.add(lamp);scene.add(lamp.target);lamp.castShadow=true;
-let on=true,started=false,found=false,clockSet=false,houseSet=false,hasKey=false,ending=false,yaw=0,storyStep=0,context;
+let on=true,started=false,hasKey=false,ending=false,yaw=0,storyStep=0,context;
 const cap=document.querySelector('#caption');
 let captionTimeout;
 function say(text){
@@ -19,26 +19,27 @@ function box(w,h,d,c,x,y,z,p=scene){return mesh(new T.BoxGeometry(w,h,d),typeof 
 function texture(draw){const c=document.createElement('canvas');c.width=c.height=512;draw(c.getContext('2d'));return new T.CanvasTexture(c)}
 const wood=texture(c=>{c.fillStyle='#493529';c.fillRect(0,0,512,512);for(let i=0;i<100;i++){c.strokeStyle='rgba(10,4,1,.12)';c.beginPath();c.moveTo(0,i*5);c.lineTo(512,i*5+Math.sin(i)*18);c.stroke()}});
 const wm=new T.MeshStandardMaterial({map:wood,roughness:.82});
-box(8,.12,9,wm,0,-.1,0);box(8,4,.15,0x34433a,0,2,-3);for(const x of [-4,4])box(.15,4,9,0x25352f,x,2,0);box(8,.1,9,0x18231f,0,4,0);
+const floor=box(8,.12,9,wm,0,-.1,0);const backWall=box(8,4,.15,0x34433a,0,2,-3);for(const x of [-4,4])box(.15,4,9,0x25352f,x,2,0);box(8,.1,9,0x18231f,0,4,0);
 for(let x=-4;x<=4;x+=.45)box(.012,.012,9,0x1d1d17,x,-.03,0);
 for(let x=-3.9;x<4;x+=.4)box(.025,1,.03,0x1e2922,x,.5,-2.88);
 box(8,.07,.11,0x645440,0,1,-2.87);box(8,.11,.14,0x665642,0,.08,-2.85);
-box(3.5,.14,1.2,wm,0,.97,-1.5);for(const x of [-1.5,1.5])for(const z of [-1.95,-1.05])box(.1,.95,.1,wm,x,.45,z);
+const study=new T.Group();scene.add(study);
+box(3.5,.14,1.2,wm,0,.97,-1.5,study);for(const x of [-1.5,1.5])for(const z of [-1.95,-1.05])box(.1,.95,.1,wm,x,.45,z,study);
 const interact=[];
 function register(group,name,action){group.userData.name=name;group.userData.action=action;interact.push(group)}
-const photo=new T.Group();photo.position.set(-1.12,1.43,-1.5);photo.rotation.x=-.1;scene.add(photo);
+const photo=new T.Group();photo.position.set(-1.12,1.43,-1.5);photo.rotation.x=-.1;study.add(photo);
 box(.85,.68,.07,0x30271d,0,0,0,photo);
 for(const x of [-.42,.42])box(.055,.72,.08,0xa58b5c,x,0,.04,photo);for(const y of [-.34,.34])box(.9,.055,.08,0xa58b5c,0,y,.04,photo);
 const picture=texture(c=>{c.fillStyle='#9b927a';c.fillRect(0,0,512,512);c.fillStyle='#626758';for(let i=0;i<7;i++)c.fillRect(i*90,0,8,512);c.fillStyle='#363d35';c.fillRect(0,370,512,142);c.fillStyle='#3b3b32';c.beginPath();c.ellipse(178,330,62,140,0,0,7);c.fill();c.fillStyle='#d1b68e';c.beginPath();c.arc(178,177,44,0,7);c.fill();c.fillStyle='#574d3b';c.beginPath();c.arc(178,158,46,Math.PI,Math.PI*2);c.fill();c.strokeStyle='#ddd0b3';c.lineWidth=3;c.strokeRect(296,195,100,210)});
 const familyTexture=new T.TextureLoader().load('https://raw.githubusercontent.com/Reet24-del/pocket-pip/main/web-preview/family.jpg'); familyTexture.colorSpace=T.SRGBColorSpace;
 mesh(new T.PlaneGeometry(.74,.57),new T.MeshBasicMaterial({map:familyTexture}),0,0,.05,photo);
-const clock=new T.Group();clock.position.set(0,2.28,-2.83);scene.add(clock);
+const clock=new T.Group();clock.position.set(0,2.28,-2.83);study.add(clock);
 mesh(new T.CylinderGeometry(.39,.39,.1,48),mat(0x705537),0,0,0,clock).rotation.x=Math.PI/2;
 const face=texture(c=>{c.fillStyle='#d2c5a4';c.fillRect(0,0,512,512);c.fillStyle='#302d25';c.font='32px Georgia';c.textAlign='center';for(let i=1;i<=12;i++){let a=i*Math.PI/6;c.fillText(i,256+180*Math.sin(a),267-180*Math.cos(a))}});
 mesh(new T.CircleGeometry(.345,64),new T.MeshBasicMaterial({map:face,transparent:false}),0,0,.06,clock);
 const needle=box(.018,.19,.015,0x292c24,0,.08,.08,clock);
 const minutes=box(.25,.013,.015,0x292c24,.1,0,.09,clock);
-const house=new T.Group();house.position.set(.65,1.05,-1.4);scene.add(house);
+const house=new T.Group();house.position.set(.65,1.05,-1.4);study.add(house);
 box(.7,.08,.62,wm,0,0,0,house);box(.62,.48,.5,0x92927c,0,.27,0,house);
 const roof=mesh(new T.ConeGeometry(.5,.35,4),mat(0x3c4843),0,.67,0,house);roof.rotation.y=Math.PI/4;
 box(.12,.2,.03,0x493d2b,0,.16,.27,house);
@@ -106,6 +107,31 @@ const keyHit=mesh(new T.PlaneGeometry(.21,.13),new T.MeshBasicMaterial({
 }),.052,-.008,.012,key);
 keyHit.castShadow=false;
 keyHit.receiveShadow=false;
+const crank=new T.Group();
+crank.position.set(.11,-.062,.035);
+drawers[2].tray.add(crank);
+box(.17,.022,.025,0x9f8349,0,0,0,crank);
+box(.028,.025,.078,0x9f8349,.07,0,-.03,crank);
+box(.032,.024,.054,0x45362f,-.062,.014,.024,crank);
+crank.visible=false;
+const inventory=new Set();
+let selectedItem=null;
+let musicWound=false;
+const itemNames={key:'Brass key',crank:'Winding crank'};
+
+function toggleItem(item){
+  selectedItem=selectedItem===item?null:item;
+  update();
+  document.querySelector('#inventory button[aria-pressed="true"]')?.focus();
+}
+
+function useItem(item){
+  if(!inventory.has(item)||selectedItem!==item)return false;
+  inventory.delete(item);
+  selectedItem=null;
+  update();
+  return true;
+}
 let inspectedObject=null;
 
 const door=new T.Group();
@@ -121,15 +147,16 @@ hinge.add(doorLeaf);
 box(1.15,2.65,.09,0x22352c,0,0,0,doorLeaf);
 for(const y of [-.6,.55])box(.82,.8,.04,0x18291f,0,y,.07,doorLeaf);
 mesh(new T.SphereGeometry(.045),mat(0xbfa069),.4,-.1,.15,doorLeaf);
+let doorUnlocked=false;
 let doorState='closed';
 for(let x of [1.95,3.25])box(.13,2.85,.17,0x7b6a4d,x,1.4,-2.8);box(1.42,.13,.17,0x7b6a4d,2.6,2.8,-2.8);
-const win=new T.Group();win.position.set(-2.55,2,-2.8);scene.add(win);box(1.4,1.65,.07,0x132b35,0,0,0,win);for(let x of [-.75,0,.75])box(.06,1.8,.1,0x7d725c,x,0,.04,win);box(1.55,.06,.1,0x7d725c,0,0,.04,win);
+const win=new T.Group();win.position.set(-2.55,2,-2.8);study.add(win);box(1.4,1.65,.07,0x132b35,0,0,0,win);for(let x of [-.75,0,.75])box(.06,1.8,.1,0x7d725c,x,0,.04,win);box(1.55,.06,.1,0x7d725c,0,0,.04,win);
 for(let y of [-.88,.88])box(1.55,.06,.1,0x7d725c,0,y,.04,win);
 const moon=new T.PointLight(0x7596b6,2,5);moon.position.set(-2.4,2,-2);scene.add(moon);
-for(let x of [-3.4,-1.7])box(.28,2.2,.13,0x333f38,x,1.8,-2.6);
-const candle=new T.Group();candle.position.set(-.4,1.05,-1.3);scene.add(candle);mesh(new T.CylinderGeometry(.06,.07,.22,12),mat(0xc7b594),0,.11,0,candle);
+for(let x of [-3.4,-1.7])box(.28,2.2,.13,0x333f38,x,1.8,-2.6,study);
+const candle=new T.Group();candle.position.set(-.4,1.05,-1.3);study.add(candle);mesh(new T.CylinderGeometry(.06,.07,.22,12),mat(0xc7b594),0,.11,0,candle);
 const flame=mesh(new T.SphereGeometry(.035,10,10),new T.MeshBasicMaterial({color:0xffd080}),0,.25,0,candle);flame.scale.y=1.7;
-const glow=new T.PointLight(0xffa65a,1.8,3);glow.position.set(-.4,1.4,-1.3);scene.add(glow);
+const glow=new T.PointLight(0xffa65a,1.8,3);glow.position.set(-.4,1.4,-1.3);study.add(glow);
 const silhouette=new T.Group();
 const coat=mat(0x18191d);
 scene.add(silhouette);
@@ -165,10 +192,10 @@ wm.map=grain;wm.roughness=.5;wm.needsUpdate=true;
 const paper=texture(c=>{c.fillStyle='#4c5140';c.fillRect(0,0,512,512);for(let x=0;x<512;x+=64)for(let y=0;y<512;y+=96){c.strokeStyle='#80724d';c.lineWidth=2;c.beginPath();c.moveTo(x+32,y);c.bezierCurveTo(x-10,y+30,x+74,y+60,x+32,y+96);c.bezierCurveTo(x-10,y+60,x+74,y+30,x+32,y);c.stroke()} });paper.wrapS=paper.wrapT=T.RepeatWrapping;paper.repeat.set(5,2.5);paper.colorSpace=T.SRGBColorSpace;
 // Replace wall surface only; props remain separate geometry.
 scene.children.filter(o=>o.isMesh&&o.geometry.type==='BoxGeometry'&&o.geometry.parameters.width===8&&o.geometry.parameters.height===4).forEach(o=>o.material=new T.MeshStandardMaterial({map:paper,roughness:.93}));
-function turnedLeg(x,z){const pts=[];for(let i=0;i<35;i++){let y=i/34*.9;let r=.065+.025*Math.sin(i*.65)+.02*Math.exp(-Math.pow(y-.2,2)/.007);pts.push(new T.Vector2(r,y))}mesh(new T.LatheGeometry(pts,20),wm,x,0,z)}
+function turnedLeg(x,z){const pts=[];for(let i=0;i<35;i++){let y=i/34*.9;let r=.065+.025*Math.sin(i*.65)+.02*Math.exp(-Math.pow(y-.2,2)/.007);pts.push(new T.Vector2(r,y))}mesh(new T.LatheGeometry(pts,20),wm,x,0,z,study)}
 for(const x of [-1.5,1.5])for(const z of [-1.95,-1.05])turnedLeg(x,z);
-box(3.6,.035,1.3,wm,0,1.06,-1.5);box(3.45,.035,1.22,0x9b7850,0,.88,-1.5);
-for(const x of [-1.12,0,1.12]){box(1.02,.19,.12,wm,x,.79,-.87);mesh(new T.TorusGeometry(.065,.009,8,16),brass,x,.79,-.79)}
+box(3.6,.035,1.3,wm,0,1.06,-1.5,study);box(3.45,.035,1.22,0x9b7850,0,.88,-1.5,study);
+for(const x of [-1.12,0,1.12]){box(1.02,.19,.12,wm,x,.79,-.87,study);mesh(new T.TorusGeometry(.065,.009,8,16),brass,x,.79,-.79,study)}
 // Brass frame molding and clock rim.
 mesh(new T.TorusGeometry(.373,.018,10,64),brass,0,0,.07,clock);
 for(const x of [-.4,.4])for(const y of [-.32,.32]){mesh(new T.TorusGeometry(.045,.009,8,16),brass,x,y,.09,photo)}
@@ -189,7 +216,7 @@ mesh(new T.PlaneGeometry(3.4,3.6),new T.MeshStandardMaterial({map:rugtex,roughne
 // Wall shelf and old book spines, each a separate object.
 box(.65,.06,2,wm,-3.55,1.15,-.7);for(let i=0;i<9;i++)box(.23,.28+.07*Math.sin(i),.09,0x453324+i*250,-3.55,1.32,-1.45+i*.17);
 // Rain lines on glass; no motion sickness or flashing effects.
-const rain=new T.Group();scene.add(rain);for(let i=0;i<55;i++){box(.003,.04+((i%5)*.015),.004,0x69838b,-3.22+(i%11)*.13,1.35+(i%13)*.11,-2.73)}
+const rain=new T.Group();scene.add(rain);for(let i=0;i<55;i++){box(.003,.04+((i%5)*.015),.004,0x69838b,-3.22+(i%11)*.13,1.35+(i%13)*.11,-2.73,study)}
 const inspection=document.querySelector('#inspect');
 const details=document.querySelector('#details');
 const detailsButton=document.querySelector('#toggleDetails');
@@ -238,16 +265,233 @@ function close(){
   pitch=home.pitch;
 }
 document.querySelector('#close').onclick=close;
-let room=0,remaining=480,mistakes=0,solved=false,parcelCount=0;
-const gallery=new T.Group();scene.add(gallery);gallery.visible=false;for(let i=0;i<3;i++){box(.65,.9,.07,0x97764a,-2+i,2.5,-2.75,gallery);}const nursery=new T.Group();scene.add(nursery);nursery.visible=false;box(1.5,.12,.8,wm,-2,.6,-1.5,nursery);for(let i=0;i<9;i++)box(.04,.65,.04,0x9e8c70,-2.7+i*.17,.9,-1.1,nursery);
+let room=0,remaining=720,mistakes=0,solved=false,parcelCount=0;
+const gallery=new T.Group();
+const nursery=new T.Group();
+scene.add(gallery,nursery);
+gallery.visible=nursery.visible=false;
+
+function plaque(parent,width,height,x,y,z,lines,background='#332521', foreground='#f1dbac'){
+  const map=texture(context=>{
+    context.fillStyle=background;
+    context.fillRect(0,0,512,512);
+    context.strokeStyle='#a58a65';
+    context.lineWidth=8;
+    context.strokeRect(19,19,474,474);
+    context.textAlign='center';
+    context.textBaseline='middle';
+    context.fillStyle=foreground;
+    for(const [index,line] of lines.entries()){
+      context.font='bold '+(line.length>13?40:67)+'px Georgia';
+      context.fillText(line,256,256+(index-(lines.length-1)/2)*125,448);
+    }
+  });
+  map.colorSpace=T.SRGBColorSpace;
+  const face=mesh(new T.PlaneGeometry(width,height),new T.MeshBasicMaterial({map}),x,y,z,parent);
+  face.castShadow=false;
+  return face;
+}
+function prop(parent,x,y,z){
+  const object=new T.Group();
+  object.position.set(x,y,z);
+  parent.add(object);
+  return object;
+}
+const galleryPortraits=[
+  {name:'Candle',year:1907,digit:'6',symbol:'♨'},
+  {name:'Moon',year:1884,digit:'2',symbol:'☾'},
+  {name:'Moth',year:1919,digit:'9',symbol:'✦'},
+  {name:'Gate',year:1896,digit:'4',symbol:'▥'},
+];
+const portraits=galleryPortraits.map(({name,year,digit,symbol},index)=>{
+  const frame=prop(gallery,-2.95+index*1.34,2.15,-2.77);
+  box(.98,1.35,.13,brass,0,0,0,frame);
+  const print=familyTexture.clone();
+  print.repeat.set(.22,.44);
+  print.offset.set([.07,.26,.42,.7][index],[.28,.52,.43,.39][index]);
+  const portrait=mesh(new T.PlaneGeometry(.79,.8),new T.MeshBasicMaterial({map:print,color:0xcbb6a1}),0,.14,.071,frame);
+  portrait.castShadow=false;
+  plaque(frame,.79,.28,0,-.43,.072,[symbol+' '+name,String(year)],'#28151e');
+  register(frame,name+' portrait',()=>{
+    remember(name+' portrait',year+' · seal '+digit);
+    show(name+' portrait','The plate reads '+year+'. The seal on the back is stamped '+digit+'.');
+    if(index===2&&!mothMoved){
+      mothMoved=true;
+      frame.rotation.z=-.075;
+      thud(.14,.35,108,-.6);
+    }
+  });
+  return frame;
+});
+let mothMoved=false;
+const galleryLock=prop(gallery,-.52,.91,-1.32);
+box(1.15,.22,.64,0x7d736d,0,-.05,0,galleryLock);
+box(.92,.72,.51,0x3c3638,0,-.53,0,galleryLock);
+plaque(galleryLock,.87,.19,0,.02,.33,['ARCHIVE']);
+register(galleryLock,'Archive lock',()=>showLock());
+const ledger=prop(gallery,-2.45,1.05,-1.55);
+box(.85,.12,.53,0xa68a65,0,0,0,ledger);
+box(.91,.035,.59,0x642a32,0,-.08,0,ledger);
+plaque(ledger,.64,.41,0,.069,0,['Briar House','Register']).rotation.x=-Math.PI/2;
+box(.92,1.01,.62,0x58333b,ledger.position.x,.49,ledger.position.z,gallery);
+register(ledger,'Family register',()=>reveal('Family register','The archive takes four seals. Enter them in order of each portrait’s year, oldest first.'));
+for(const x of [-3.76,1.94,3.34]){
+  box(.17,3.9,.26,0x988578,x,1.95,-2.72,gallery);
+}
+const galleryLight=new T.PointLight(0xbc654a,8,9);
+galleryLight.position.set(0,2.85,-.6);
+gallery.add(galleryLight);
+for(const x of [-3.45,1.7]){
+  box(.13,.39,.18,brass,x,2.86,-2.65,gallery);
+  box(.16,.19,.17,new T.MeshBasicMaterial({color:0xd69254}),x,3.02,-2.52,gallery);
+}
+
+const cot=prop(nursery,-2.05,.55,-1.68);
+box(1.6,.12,.88,wm,0,-.13,0,cot);
+box(1.48,.18,.74,0x837570,0,0,0,cot);
+box(.52,.09,.63,0xc0aaa1,-.44,.115,0,cot);
+box(.84,.1,.71,0x637986,.23,.13,0,cot);
+for(const x of [-.77,.77]){
+  for(const z of [-.43,.43])box(.085,1.04,.085,wm,x,0,z,cot);
+  box(.09,.07,.91,wm,x,.49,0,cot);
+}
+for(let x=-.68;x<.72;x+=.15)box(.034,.47,.045,wm,x,.17,-.41,cot);
+register(cot,'Empty cot',()=>reveal('Empty cot','A warm hollow in the blanket. Under the pillow Ada drew an arrow pointing from the music box to the mirror.'));
+const mobile=prop(nursery,-1.95,2.15,-1.70);
+box(.012,1.9,.012,0x988777,0,.94,0,mobile);
+const mobileArm=prop(mobile,0,0,0);
+box(1.04,.036,.04,wm,0,0,0,mobileArm);
+const tokens=['Bird','Bell','Moon','Star'];
+for(const [index,name] of tokens.entries()){
+  const x=(index-1.5)*.31;
+  box(.008,.28,.008,0xc6b195,x,-.15,0,mobileArm);
+  plaque(mobileArm,.2,.19,x,-.36,0,[name],'#394c59');
+}
+register(mobile,'Hanging mobile',()=>reveal('Hanging mobile','The chimes are numbered by pitch, lowest to highest. Bird is 1, Bell is 2, Moon is 3, and Star is 4.'));
+const score=prop(nursery,.15,1.03,-1.55);
+box(.84,.14,.63,wm,0,-.09,0,score);
+box(.75,.96,.53,wm,score.position.x,.43,score.position.z,nursery);
+plaque(score,.60,.45,0,-.011,0,['Ada’s tune','2   4   1   3'],'#bd9f71','#2a2632').rotation.x=-Math.PI/2;
+register(score,'Sheet music',()=>reveal('Sheet music','Ada pencilled 2, 4, 1, 3 over the notes. A second line reads “When it plays, turn to the glass.”'));
+const musicBox=prop(nursery,1.15,.83,-1.5);
+box(.77,.23,.56,wm,0,0,0,musicBox);
+box(.77,.06,.58,0x85705c,0,.145,0,musicBox);
+plaque(musicBox,.66,.18,0,.025,.292,['MUSIC BOX'],'#4a3942');
+box(.84,.72,.67,wm,musicBox.position.x,.34,musicBox.position.z,nursery);
+register(musicBox,'Music box',()=>{
+  if(!musicWound&&useItem('crank')){
+    musicWound=true;
+    thud(.09,0,144);
+  }
+  if(musicWound){
+    showLock();
+    return;
+  }
+  show('Music box','The winding spindle is bare. Find its crank and select it from your inventory.',inventory.has('crank')
+    ?[['Use winding crank',()=>{selectedItem='crank';musicBox.userData.action();}]]
+    :[]);
+});
+const mirror=prop(nursery,-.23,2.1,-2.79);
+box(1.86,2.13,.12,brass,0,0,0,mirror);
+plaque(mirror,1.69,1.96,0,0,.069,[''],'#344953','#9bbec4');
+const mirrorMessage=prop(mirror,0,0,.005);
+plaque(mirrorMessage,1.69,1.96,0,0,.069,['ADA','★  ☾  ♫'],'#30424c','#c9e9e9');
+mirrorMessage.visible=false;
+register(mirror,'Nursery mirror',()=>{
+  if(!melodyPlayed){
+    show('Nursery mirror','Cold glass. Someone has written “Play it first” in the dust.');
+    return;
+  }
+  remember('Mirror marks','Star · Moon · Bell');
+  show('Mirror marks','Three marks appear in Ada’s breath. A star, a moon, then a bell.',[['Set the mirror latches',()=>showLock()]]);
+});
+const rocker=prop(nursery,2.12,.2,.75);
+for(const x of [-.27,.27]){
+  const rail=mesh(new T.TorusGeometry(.51,.043,8,26,1.16),wm,x,.19,0,rocker);
+  rail.rotation.set(Math.PI/2,Math.PI/2,0);
+  for(const z of [-.24,.24])box(.055,.63,.06,wm,x,.28,z,rocker);
+}
+box(.61,.082,.63,wm,0,.55,0,rocker);
+box(.66,.69,.085,wm,0,.87,-.26,rocker);
+const nurseryLight=new T.PointLight(0x80abc6,14,9);
+nurseryLight.position.set(-1,2.7,-.8);
+nursery.add(nurseryLight);
+
+const ada=prop(door,0,-1.24,.12);
+const dress=mat(0x5b6075);
+const hair=mat(0x392a2a);
+const skin=mat(0xb69b8a);
+mesh(new T.CylinderGeometry(.11,.27,.85,26),dress,0,.55,0,ada);
+mesh(new T.SphereGeometry(.128,24,16),hair,0,1.12,.005,ada).scale.y=1.19;
+mesh(new T.SphereGeometry(.107,24,16),skin,0,1.108,.078,ada).scale.y=1.1;
+for(const x of [-.15,.15]){
+  box(.064,.43,.07,dress,x,.74,.035,ada).rotation.z=x;
+  box(.072,.09,.126,0x2f2624,x*.62,.09,.04,ada);
+}
+const adaLight=new T.PointLight(0xbacde6,2,1.8);
+adaLight.position.set(.3,1.48,.42);
+ada.add(adaLight);
+ada.visible=false;
+
+const finishes=[
+  {wall:backWall.material,floor:wm,sky:0x080f13},
+  {wall:mat(0x502531),floor:mat(0x63514b),sky:0x170b14},
+  {wall:mat(0x3c5267),floor:mat(0x3c3f55),sky:0x0a1527},
+];
+const clueBook=document.querySelector('#clues');
+function remember(title,text){
+  const entry=[...clueBook.children].find(item=>item.dataset.title===title);
+  if(!entry){
+    const note=document.createElement('li');
+    note.dataset.title=title;
+    note.textContent=title+' · '+text;
+    clueBook.append(note);
+  }
+  update();
+}
+function reveal(title,text){
+  remember(title,text);
+  show(title,text);
+}
+let melodyPlayed=false;
+let roomEntered=0;
 const rooms=['The study','The portrait gallery','Ada’s nursery'];
 const home={position:camera.position.clone(),yaw:0,pitch:0}; let inspecting=false,zoomTarget=null,lookTarget=null,lastTime=performance.now();
-function advance(){close();room++;hintLevel=0;
+function advance(){
+  close();
+  room++;
+  hintLevel=0;
+  roomEntered=performance.now();
+  solved=hasKey=melodyPlayed=musicWound=false;
+  doorUnlocked=false;
+  inventory.clear();
+  selectedItem=null;
+  key.visible=false;
+  clueBook.replaceChildren();
   for(const drawer of drawers)drawer.tray.position.z=0;
   hinge.rotation.y=0;
   drawers[puzzles[room].letterDrawer].tray.add(letter);
   drawers[puzzles[room].keyDrawer].tray.add(key);
-  solved=false;camera.position.copy(home.position);yaw=pitch=0;document.querySelector('#roomName').textContent=rooms[room];found=clockSet=houseSet=hasKey=false;key.visible=false;gallery.visible=room===1;nursery.visible=room===2;if(room===1){say('The door opens into a gallery. Ada left you a sequence, not an hour.');house.visible=true;scene.background=new T.Color(0x14101a);}else{say('Ada’s nursery. The music box remembers her way home.');house.visible=true;scene.background=new T.Color(0x111924);}update();}
+  study.visible=room===0;
+  gallery.visible=room===1;
+  nursery.visible=room===2;
+  cabinet.position.z=room===1?2.05:1.15;
+  const finish=finishes[room];
+  backWall.material=finish.wall;
+  floor.material=finish.floor;
+  scene.background.setHex(finish.sky);
+  scene.fog.color.copy(scene.background);
+  const entrance=new T.Vector3(room===1?1.2:0,1.65,4.05);
+  camera.position.copy(entrance);
+  home.position.copy(entrance);
+  home.pitch=home.yaw=pitch=yaw=0;
+  zoomTarget=null;
+  document.querySelector('#roomName').textContent=rooms[room];
+  refreshNavigation();
+  say(room===1?'The frames creak in their hooks. A name has been scratched off the register.':'A small chair is rocking. Ada’s bed is still warm.');
+  thud(.16,.6,room===1?96:58,.55);
+  update();
+}
 function finish(){ending=true;close();document.querySelector('#story').style.display='flex';document.querySelector('#storyTitle').textContent='You found Ada.';document.querySelector('#storyText').textContent='Beyond the last door, Ada opens her eyes. You take her hand. Three rooms, '+mistakes+' wrong answers, '+Math.ceil(remaining)+' seconds left. Outside, the courier drops his last parcel and disappears.';document.querySelector('#next').textContent='Play again';}
 function fail(){
   if(ending)return;
@@ -262,8 +506,10 @@ function fail(){
   }
   if(parcelCount<6){
     const parcel=new T.Group();
-    parcel.position.set(-.81+parcelCount++*.25,1.105,-1.1);
-    scene.add(parcel);
+    const position=room===0?[-.81+parcelCount*.25,1.105,-1.1]:[.7+parcelCount*.33,.025,.7];
+    parcelCount++;
+    parcel.position.set(...position);
+    [study,gallery,nursery][room].add(parcel);
     box(.22,.085,.16,0x967952,0,0,0,parcel);
     box(.014,.089,.164,0x584535,0,0,0,parcel);
     box(.223,.089,.014,0x584535,0,0,0,parcel);
@@ -275,59 +521,78 @@ function fail(){
   nextStep=performance.now()+450;
   update();
 }
-register(photo,'Inspect photograph',()=>{found=true;show(room===0?'A space beside you':'Ada’s next clue',room===0?'The family photograph has an empty outline. Scratched into its frame: “She waited until 3:15.”':room===1?'Three portraits hang in order: a moon, a door, a candle. Their frame numbers are 2, 4, 1. The letter says: “Read left to right.”':'Ada’s lullaby: “Rain, candle, moon. Then home.”');update()});
+register(photo,'Inspect photograph',()=>reveal('A space beside you','There is a space in the photograph where Ada stood. On the frame she scratched “I counted a quarter of the clock.”'));
 const puzzles=[
   {
-    title:'Set the clock', slots:['Hour','Minute'],
-    choices:[['12','3','6','9'],['00','15','30','45']], answer:['3','15'],
+    title:'Set the clock',slots:['Hour','Minute'],
+    choices:[['12','3','6','9'],['00','15','30','45']],answer:['3','15'],
     letterDrawer:0,keyDrawer:0,
-    letter:'“The third hour had struck. I counted a quarter of the clock before he came.”',
-    hints:['Ada’s photograph and the letter in the top drawer remember the time.','A quarter of an hour is 15 minutes.','Set Hour to 3 and Minute to 15.'],
+    letter:'“The third hour struck. I waited where we had taken the photograph.”',
+    hints:['The photograph and the top drawer carry different parts of the time.','The letter gives the hour. A quarter of an hour is 15 minutes.','Set Hour to 3 and Minute to 15.'],
   },
   {
-    title:'The gallery lock', slots:['First','Second','Third'],
-    choices:['1','2','4'], answer:['2','4','1'],
+    title:'Archive lock',slots:['First','Second','Third','Fourth'],
+    choices:['2','4','6','9'],answer:['2','4','6','9'],
     letterDrawer:1,keyDrawer:2,
-    letter:'“The moon comes first, then the door, then the candle. Read the numbers on their frames.”',
-    hints:['The letter in the middle drawer gives you the order of the portraits.','Inspect the photograph for the frame numbers. The moon is 2.','Try 2, then 4, then 1.'],
+    letter:'“The numbers on the backs of the frames are the seals. Mother’s register tells you which comes first.”',
+    hints:['Read the family register and inspect each portrait to learn its year and seal.','Sort the portraits from oldest to newest. The moon predates the gate.','Enter 2, 4, 6, 9.'],
   },
   {
-    title:'The music box', slots:['First','Second','Third'],
-    choices:['Moon','Rain','Candle'], answer:['Rain','Candle','Moon'],
+    title:'Music box',slots:['First','Second','Third','Fourth'],
+    choices:tokens,answer:['Bell','Star','Bird','Moon'],
     letterDrawer:2,keyDrawer:1,
-    letter:'“Rain on the windows. A candle in the dark. The moon brought me home.”',
-    hints:['Look for Ada’s lullaby in the bottom drawer or inspect the dollhouse.','Start with what you hear at the window.','Choose Rain, Candle, then Moon.'],
+    letter:'“Match my sheet music to the chimes on the mobile. When the box plays, the mirror will remember me.”',
+    hints:['Read the sheet music and inspect the hanging mobile.','Translate each number on the sheet into its matching chime.','Play Bell, Star, Bird, Moon and examine the mirror.'],
   },
 ];
+const mirrorPuzzle={
+  title:'Mirror latches',slots:['First','Second','Third'],
+  choices:['Bird','Bell','Moon','Star'],answer:['Star','Moon','Bell'],
+  hints:['The tune wakes the mirror. Examine it to see the marks.','The marks are read from left to right.','Set Star, Moon, Bell.'],
+};
+const chimePitch={Bird:262,Bell:330,Moon:392,Star:523};
 
 function showLock(sequence=[]){
-  const puzzle=puzzles[room];
   if(solved){
-    show('The lock is open','You heard metal fall into one of the drawers. Nudge them to find it.');
+    show('The lock is open','Something dropped inside the chest.');
     return;
   }
+  if(room===2&&melodyPlayed&&inspectedObject!==mirror){
+    show('Music box','The tune has finished. Look at the mirror.');
+    return;
+  }
+  const puzzle=room===2&&melodyPlayed?mirrorPuzzle:puzzles[room];
   const slot=sequence.length;
   const complete=slot===puzzle.slots.length;
   const options=Array.isArray(puzzle.choices[0])?puzzle.choices[slot]:puzzle.choices;
   const actions=complete
     ?[['Try combination',()=>{
       if(!sequence.every((value,index)=>value===puzzle.answer[index])){fail();return;}
+      if(room===2&&!melodyPlayed){
+        melodyPlayed=true;
+        hintLevel=0;
+        mirrorMessage.visible=true;
+        sequence.forEach((note,index)=>thud(.12,index*.23,chimePitch[note]));
+        close();
+        say('The music stops. In the mirror, someone breathes against the glass.');
+        update();
+        return;
+      }
       solved=true;
       close();
-      say('The lock clicks. You hear brass drop into one of the drawers.');
+      say(room===2?'Ada knocks from beyond the door. The last key falls into the chest.':'The lock clicks. You hear brass drop into one of the drawers.');
+      thud(.14,.08,125);
       update();
     }]]
-    :options.map(value=>[value,()=>showLock([...sequence,value])]);
+    :options.map(value=>[value,()=>{
+      if(room===2&&!melodyPlayed)thud(.08,0,chimePitch[value]);
+      showLock([...sequence,value]);
+    }]);
   if(slot>0)actions.push(['Clear',()=>showLock()]);
-  const slots=puzzle.slots.map((label,index)=>`${label} · ${sequence[index]??'—'}`).join('   /   ');
-  show(puzzle.title,slots+'\n'+(complete?'Submit this combination.':'Choose '+puzzle.slots[slot].toLowerCase()+'.'),actions);
+  show(puzzle.title,puzzle.slots.map((label,index)=>label+' · '+(sequence[index]??'—')).join('   /   ')+'\n'+(complete?'Submit this combination.':'Choose '+puzzle.slots[slot].toLowerCase()+'.'),actions);
 }
 register(clock,'Solve room puzzle',()=>showLock());
-register(house,'Inspect dollhouse / music box',()=>show(
-  room===2?'Music box':'The little house',
-  room===2?'Three notes are scratched underneath: rain, candle, moon. Enter them at the room lock.':
-    'There’s a tiny brass latch on the model. Its mechanism runs into the cabinet.'
-));
+register(house,'Inspect dollhouse',()=>show('The little house','The clockwork under its floor runs all the way to the chest.'));
 
 const doorAngles={closed:0,nudged:-.14,open:-1.32};
 function stepThrough(){
@@ -336,11 +601,13 @@ function stepThrough(){
 }
 function operateDoor(){
   if(doorState==='open'){
-    show('The door is open','Something moves in the dark beyond.',[
-      ['Step through',stepThrough],
+    show('The door is open',room===2?'Ada stands just beyond the threshold. She holds out her hand.':'Something moves in the dark beyond.',[
+      [room===2?'Take Ada’s hand':'Step through',stepThrough],
       ['Shut door',close],
     ]);
-  }else if(hasKey){
+  }else if(doorUnlocked||useItem('key')){
+    doorUnlocked=true;
+    update();
     doorState='nudged';
     show('The door gives','The brass key turns. You can push the door the rest of the way.',[
       ['Open door',()=>{doorState='open';operateDoor();}],
@@ -348,24 +615,35 @@ function operateDoor(){
     ]);
   }else{
     doorState='nudged';
-    show('The chain catches','The door moves a little, then catches. The room lock releases a brass key.',[
-      ['Shut door',close],
-    ]);
+    const actions=[['Shut door',close]];
+    if(inventory.has('key'))actions.unshift(['Use brass key',()=>{
+      selectedItem='key';
+      operateDoor();
+    }]);
+    show('The chain catches',hasKey?'Select the brass key in your inventory and use it on this door.':'The door moves a little, then catches. The room lock releases a brass key.',actions);
   }
 }
 register(door,'Nudge door',operateDoor);
 
 function showLetter(){
-  found=true;
+  remember('Ada’s letter',puzzles[room].letter);
   show('Ada’s letter',puzzles[room].letter,[['Shut drawer',close]]);
   update();
 }
 function takeKey(drawer){
   if(drawer.state!=='open'||drawer.tray!==key.parent||!solved||hasKey)return;
   hasKey=true;
+  inventory.add('key');
   key.visible=false;
   show('The room key','You lift the brass key from the drawer. It fits the door.',[['Shut drawer',close]]);
   say('You have the key. Get to the door.');
+  update();
+}
+function takeCrank(drawer){
+  if(room!==2||drawer.tray!==crank.parent||drawer.state!=='open'||musicWound||inventory.has('crank'))return;
+  inventory.add('crank');
+  crank.visible=false;
+  show('Winding crank','The brass spindle on Ada’s music box would fit this.',[['Shut drawer',close]]);
   update();
 }
 function frameDrawer(drawer){
@@ -386,11 +664,14 @@ function setDrawer(drawer,state){
     setDetailsVisible(false);
     return;
   }
+  const hasCrank=room===2&&drawer.tray===crank.parent&&!musicWound&&!inventory.has('crank');
+  if(hasCrank)actions.unshift(['Take winding crank',()=>takeCrank(drawer)]);
   if(hasVisibleKey)actions.unshift(['Take brass key',()=>takeKey(drawer)]);
   if(drawer.tray===letter.parent)actions.unshift(['Read Ada’s letter',showLetter]);
   const contents=[
     drawer.tray===letter.parent?'Ada’s letter rests in the tray.':'',
     hasVisibleKey?'Click the brass key to pick it up.':'',
+    hasCrank?'A small winding crank lies beside the letter.':'',
   ].filter(Boolean);
   show(drawer.name,contents.join(' ')||'The tray is empty.',actions);
   setDetailsVisible(false);
@@ -402,7 +683,25 @@ for(const drawer of drawers){
 
 register(win,'Inspect window',()=>show('Beyond the glass',room===2?'A small handprint appears in the mist. Ada is still alive.':'Fresh footprints stop beneath the window. A courier has been watching the house.'));
 register(candle,'Inspect candle',()=>show('Warm wax','Someone was here moments ago. The wax is still warm.'));
-function update(){document.querySelector('#threat').textContent=threatLabels[threat];document.querySelector('#objective').textContent=!found?'Inspect the photograph or search the drawers for clues.':!solved?'Use the clue to solve the room lock.':!hasKey?'The lock is open. Search the drawers for the brass key.':'You have the key. Open the door.';document.querySelector('#progress').textContent=(room+1)+' / 3';document.querySelector('#inventory').textContent=hasKey?'Brass key':'Empty pockets';}
+function update(){
+  document.querySelector('#threat').textContent=threatLabels[threat];
+  const search=['Find the time Ada remembers.','Match the portrait seals to the family register.','Recover Ada’s tune from the sheet music and mobile.'];
+  document.querySelector('#objective').textContent=hasKey?'You have the key. Open the door.':
+    solved?'Search the drawers for the brass key.':
+    room===2&&melodyPlayed?'Read the marks in the nursery mirror.':search[room];
+  document.querySelector('#progress').textContent=(room+1)+' / 3';
+  const pockets=document.querySelector('#inventory');
+  pockets.replaceChildren();
+  document.querySelector('#inventoryLabel').textContent=inventory.size?'Inventory':'Inventory · empty';
+  for(const item of inventory){
+    const button=document.createElement('button');
+    button.textContent=itemNames[item];
+    button.setAttribute('aria-pressed',String(selectedItem===item));
+    button.onclick=()=>toggleItem(item);
+    pockets.append(button);
+  }
+  document.body.classList.toggle('using-item',Boolean(selectedItem));
+}
 function thud(volume,delay,frequency,pan=0){
   if(!context||document.querySelector('#sound').getAttribute('aria-pressed')==='false')return;
   const time=context.currentTime+delay;
@@ -428,7 +727,7 @@ document.querySelector('#sound').onclick=e=>{
   e.currentTarget.textContent=enabled?'Sound on':'Sound off';
   if(enabled)context?.resume();
 };
-document.querySelector('#next').onclick=()=>{if(ending){location.reload();return}if(storyStep++===0){document.querySelector('#storyTitle').textContent='Tonight, she wrote to you.';document.querySelector('#storyText').textContent='An envelope arrived without a stamp. Inside was Ada’s handwriting: “I did not climb out. You turned the house. Come back before the clock remembers.” You unlock Briar House. Three knocks come from inside.';document.querySelector('#next').textContent='Take the lantern';}else{started=true;document.querySelector('#story').style.display='none';if(window.AudioContext){context=new AudioContext();context.resume().catch(()=>{});}playKnock(.14);nextStep=performance.now()+6500;update();say('The photograph on the desk. Wasn’t someone standing beside you?');}};
+document.querySelector('#next').onclick=()=>{if(ending){location.reload();return}if(storyStep++===0){document.querySelector('#storyTitle').textContent='Tonight, she wrote to you.';document.querySelector('#storyText').textContent='An envelope arrived without a stamp. Inside was Ada’s handwriting: “I did not climb out. You turned the house. Come back before the clock remembers.” You unlock Briar House. Three knocks come from inside.';document.querySelector('#next').textContent='Take the lantern';}else{started=true;document.body.classList.add('playing');document.querySelector('#story').style.display='none';if(window.AudioContext){context=new AudioContext();context.resume().catch(()=>{});}playKnock(.14);nextStep=performance.now()+6500;update();say('The photograph on the desk. Wasn’t someone standing beside you?');}};
 document.querySelector('#light').onclick=()=>{on=!on;document.querySelector('#light').textContent='Lantern '+(on?'on':'off')};addEventListener('keydown',e=>{if(e.code==='Escape'){
   close();
   document.querySelector('#guide').hidden=true;
@@ -439,13 +738,16 @@ document.querySelector('#hint').onclick=()=>{
   if(!started||ending)return;
   document.querySelector('#guide').hidden=true;
   const puzzle=puzzles[room];
+  const hints=room===2&&melodyPlayed?mirrorPuzzle.hints:puzzle.hints;
   if(hasKey){
-    show('Hint','Use the brass key at the door, then step through.');
+    show('Hint',doorUnlocked?'Open the door and step through.':'Select the brass key in your inventory and use it at the door.');
   }else if(solved){
     show('Hint','Nudge the '+drawerNames[puzzle.keyDrawer].toLowerCase()+' and pull it open to find the brass key.');
+  }else if(room===2&&!musicWound){
+    show('Hint',inventory.has('crank')?'Select your winding crank and use it on the music box.':'Search the bottom drawer for the music box’s crank.');
   }else{
-    hintLevel=Math.min(hintLevel+1,puzzle.hints.length);
-    show('Hint '+hintLevel+' / '+puzzle.hints.length,puzzle.hints[hintLevel-1]);
+    hintLevel=Math.min(hintLevel+1,hints.length);
+    show('Hint '+hintLevel+' / '+hints.length,hints[hintLevel-1]);
   }
 };
 function inspectObject(object){
@@ -476,15 +778,22 @@ function inspectObject(object){
   }
   object.userData.action();
 }
-for(const [label,object] of [
-  ['Photograph',photo],['Room lock',clock],['Dollhouse',house],['Door',door],
-  ...drawers.map(drawer=>[drawer.name,drawer.tray]),
-]){
-  const button=document.createElement('button');
-  button.textContent=label;
-  button.onclick=()=>inspectObject(object);
-  document.querySelector('#objects').append(button);
+function refreshNavigation(){
+  const nav=document.querySelector('#objects');
+  nav.replaceChildren();
+  const targets=[
+    [['Photograph',photo],['Room lock',clock],['Dollhouse',house]],
+    [['Family register',ledger],['Archive lock',galleryLock],...portraits.map((frame,index)=>[galleryPortraits[index].name+' portrait',frame])],
+    [['Empty cot',cot],['Hanging mobile',mobile],['Sheet music',score],['Music box',musicBox],['Nursery mirror',mirror]],
+  ];
+  for(const [label,object] of [...targets[room],['Door',door],...drawers.map(drawer=>[drawer.name,drawer.tray])]){
+    const button=document.createElement('button');
+    button.textContent=label;
+    button.onclick=()=>inspectObject(object);
+    nav.append(button);
+  }
 }
+refreshNavigation();
 const pointer=new T.Vector2();
 const ray=new T.Raycaster();
 let down=false,lastX=0,lastY=0,pitch=0;
@@ -538,11 +847,14 @@ renderer.domElement.onpointermove=e=>{
   const {object,mesh:hit}=hitObject(e);
   const drawer=object?.userData.drawer;
   const label=drawer?.state==='open'&&hit?.parent===key?'Take brass key':
+    drawer?.state==='open'&&hit?.parent===crank?'Take winding crank':
     drawer?.state==='open'&&hit?.parent===letter?'Read Ada’s letter':
     drawer?.state==='nudged'?'Pull open':
     drawer?.state==='open'&&hit?.parent===drawer.front?'Shut drawer':
-    object===door&&doorState==='open'?(hit===doorway?'Step through':'Shut door'):
-    object===door&&doorState==='nudged'&&hasKey?'Open door':
+    object===door&&doorState==='open'?(hit===doorway||hit?.parent===ada?(room===2?'Take Ada’s hand':'Step through'):'Shut door'):
+    object===door&&selectedItem==='key'?'Use brass key':
+    object===musicBox&&selectedItem==='crank'?'Use winding crank':
+    object===door&&doorState==='nudged'&&doorUnlocked?'Open door':
     object?.userData.name;
   document.querySelector('#hover').textContent=started&&!ending&&!down?(label||''):'';
   renderer.domElement.style.cursor=started&&!ending&&label?'pointer':'';
@@ -565,18 +877,21 @@ renderer.domElement.onpointerup=e=>{
   const drawer=object?.userData.drawer;
   if(drawer&&object===inspectedObject){
     if(drawer.state==='open'&&hit.parent===key){takeKey(drawer);return;}
+    if(drawer.state==='open'&&hit.parent===crank){takeCrank(drawer);return;}
     if(drawer.state==='open'&&hit.parent===letter){showLetter();return;}
     if(drawer.state!=='open'||hit.parent===drawer.front)inspectObject(object);
     return;
   }
   if(object===door&&inspectedObject===door){
     if(doorState==='open'){
-      if(hit===doorway)stepThrough();
+      if(hit===doorway||hit.parent===ada)stepThrough();
       else close();
     }
-    else if(hasKey){doorState='open';operateDoor();}
+    else if(doorUnlocked){doorState='open';operateDoor();}
+    else if(selectedItem==='key')operateDoor();
     return;
   }
+  if(object===musicBox&&selectedItem==='crank'){inspectObject(object);return;}
   if(object&&(!inspecting||drawer||object===door))inspectObject(object);
 
 };
@@ -591,10 +906,13 @@ addEventListener('resize',resize);
 const viewTarget=new T.PerspectiveCamera();
 function canWalk(x,z){
   if(Math.abs(x)>3.65||z< -2.55||z>4.1)return false;
-  if(Math.abs(x)<1.93&&z> -2.2&&z< -.67)return false;
-  if(x< -2.68&&z>.6&&z<1.7)return false;
+  if(room===0&&Math.abs(x)<1.93&&z> -2.2&&z< -.67)return false;
+  if(x< -2.68&&Math.abs(z-cabinet.position.z)<.54)return false;
   if(x< -3.03&&z> -1.9&&z<.5)return false;
   if(room===2&&x> -2.95&&x< -1.05&&z> -2.05&&z< -.8)return false;
+  if(room===1&&z>-2.05&&z<-.73&&(Math.abs(x+.52)<.77||Math.abs(x+2.45)<.66))return false;
+  if(room===2&&z>-2.04&&z<-.92&&x>-.44&&x<1.75)return false;
+  if(room===2&&Math.abs(x-2.12)<.51&&Math.abs(z-.75)<.61)return false;
   return true;
 }
 const timer=document.querySelector('#timer');
@@ -633,8 +951,10 @@ function tick(){
     drawer.tray.position.z=T.MathUtils.lerp(drawer.tray.position.z,drawerTravel[drawer.state],ease);
     drawer.light.visible=drawer.state!=='closed'||drawer.tray.position.z>.04;
   }
+  crank.visible=room===2&&!musicWound&&!inventory.has('crank')&&crank.parent.position.z>.23;
   key.visible=solved&&!hasKey&&key.parent.position.z>.23;
   hinge.rotation.y=T.MathUtils.lerp(hinge.rotation.y,doorAngles[doorState],ease);
+  ada.visible=room===2&&doorState==='open'&&hinge.rotation.y<-.8;
   if(zoomTarget){
     camera.position.lerp(zoomTarget,ease);
     if(camera.position.distanceTo(zoomTarget)<.01)zoomTarget=null;
@@ -662,6 +982,15 @@ function tick(){
     silhouette.position.lerp(activeThreat,1-Math.exp(-dt*1.25));
     silhouette.lookAt(camera.position.x,0,camera.position.z);
     courierBacklight.intensity=.7+threat*.28;
+  }
+  const sinceEntry=(now-roomEntered)/1000;
+  if(room===1){
+    const swing=Math.exp(-Math.pow((sinceEntry%24-8)/1.25,2));
+    portraits[1].rotation.z=Math.sin(sinceEntry*4)*.085*swing;
+  }
+  if(room===2){
+    rocker.rotation.x=Math.sin(sinceEntry*2.1)*.105;
+    mobileArm.rotation.y=Math.sin(sinceEntry*.75)*.27;
   }
   danger.style.opacity=String(started&&!ending?Math.min(.72,threat*.12+(remaining<=60?.2:0)):0);
   lamp.position.copy(camera.position);

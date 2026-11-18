@@ -24,9 +24,18 @@ header button{pointer-events:auto;font-size:12px;color:#d4c9b5}
 .journalTitle{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
 .journalTitle h2{font:25px Georgia;margin:0}
 #objective{font:17px/1.5 Georgia;margin-bottom:18px}
-#inventory{font-size:12px;color:#b8a786;border-top:1px solid #89795b44;padding-top:12px}
+#pockets{position:fixed;z-index:6;right:22px;top:34%;max-width:128px;text-align:right;color:#e0cba3;text-shadow:0 2px 9px #000}
+#inventoryLabel{font:12px Georgia;opacity:.8}
+#inventory{display:grid;gap:5px;margin-top:7px;justify-items:end}
+#inventory button{font-size:12px;background:#16120ee8;border-bottom:1px solid #9a845d;padding:6px 8px}
+#inventory button[aria-pressed="true"]{background:#cab077;color:#20180f;text-shadow:none}
+.using-item canvas{cursor:crosshair}
+body:not(.playing) #pockets{display:none}
+@media(max-width:600px){#pockets{right:10px;top:21%}#inventory button{font-size:11px}}
 #hint{margin:14px 0;border-bottom:1px solid #aa916f55}
 #guide summary{font-size:12px;color:#b8a786;cursor:pointer;padding:12px 0}
+#clues{padding-left:17px;margin:4px 0 16px;font:14px/1.45 Georgia}
+#clues li+li{margin-top:8px}
 #objects{display:flex;flex-wrap:wrap;gap:3px}
 #objects button{font-size:12px;border-bottom:1px solid #aa916f22}
 .inspect{position:fixed;z-index:6;left:15px;right:15px;bottom:19px;display:flex;justify-content:center;pointer-events:none}
@@ -68,20 +77,25 @@ header button{pointer-events:auto;font-size:12px;color:#d4c9b5}
 }
 </style></head><body><canvas id="game"></canvas><div id="danger" aria-hidden="true"></div><header>
   <div id="roomInfo"><span id="roomName">The study</span><span id="progress">1 / 3</span></div>
-  <div id="clockHud"><span id="timer">8:00</span><span id="threat" role="status">Footsteps outside</span></div>
+  <div id="clockHud"><span id="timer">12:00</span><span id="threat" role="status">Footsteps outside</span></div>
   <div id="headerActions">
     <button id="light">Lantern on</button>
     <button id="sound" aria-pressed="true">Sound on</button>
     <button id="journal" aria-expanded="false" aria-controls="guide">Journal</button>
   </div>
 </header>
+<aside id="pockets" aria-label="Inventory">
+  <div id="inventoryLabel">Inventory · empty</div>
+  <div id="inventory"></div>
+</aside>
 <div id="hover"></div><div id="caption" role="status"></div>
 <div id="controls">WASD or arrows to walk · drag to look · click to examine · Esc to return</div>
 <aside id="guide" hidden>
   <div class="journalTitle"><h2>Field notes</h2><button id="closeJournal" aria-label="Close journal">×</button></div>
   <div id="objective">Find what happened to Ada.</div>
-  <div id="inventory">Empty pockets</div>
+
   <button id="hint">Ask for a hint</button>
+  <details><summary>Clues found</summary><ul id="clues"></ul></details>
   <details><summary>Navigation assistance</summary><nav id="objects" aria-label="Inspect objects"></nav></details>
 </aside>
 <div class="overlay" id="story"><div class="panel"><p class="muted">BRIAR HOUSE · 17 NOVEMBER 1928</p><h2 id="storyTitle">Your sister never left.</h2><p id="storyText">Twenty years ago, your little sister Ada disappeared from this room. The police found an open window, a stopped clock, and her dollhouse facing the wall.</p><button id="next">Continue</button><p class="muted">A short interactive mystery. Headphones recommended. Atmospheric sound; no sudden full-screen flashes. Desktop preview.</p></div></div><div id="inspect" class="inspect hidden">
@@ -99,4 +113,4 @@ header button{pointer-events:auto;font-size:12px;color:#d4c9b5}
     <div id="actions"></div>
   </article>
 </div>
-<script type="module" src="./app.js?v=natural-room"></script></body></html>
+<script type="module" src="./app.js?v=three-rooms"></script></body></html>
