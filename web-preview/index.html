@@ -69,6 +69,11 @@ body.caught header,body.caught #caption,body.caught #controls,body.caught #pocke
 #retryCaught{padding:10px 23px;border:1px solid #987953;background:#382a1c;color:#ffedcb}
 #danger{position:fixed;inset:0;pointer-events:none;opacity:0;box-shadow:inset 0 0 110px 30px #5c1017;transition:opacity .6s}
 #parcelPhoto{position:relative;height:72px;width:55px;flex-shrink:0;margin:5px 0;border:5px solid #a4967e;background:linear-gradient(112deg,transparent 32%,#b6d0d34a 45%,transparent 53%),url(https://raw.githubusercontent.com/Reet24-del/pocket-pip/main/web-preview/family.jpg) 45% 54% / 330% auto;filter:sepia(.38) grayscale(.42)}
+.viewing-photo article{max-height:min(430px,68dvh)}
+.viewing-photo #details{flex-wrap:wrap}
+.viewing-photo #portrait{max-width:min(100%,385px);max-height:34dvh}
+.viewing-photo #parcelPhoto{width:min(185px,46vw);height:min(225px,34dvh)}
+.viewing-photo #itemText{flex-basis:100%;margin:0 0 6px}
 #parcelPhoto::after{content:'';position:absolute;inset:0;box-shadow:inset 0 0 36px #0009}
 @media(max-width:600px){
   header{left:15px;right:15px;top:14px;flex-wrap:wrap}
@@ -130,4 +135,4 @@ body.caught header,body.caught #caption,body.caught #controls,body.caught #pocke
     <button id="retryCaught">Try again</button>
   </div>
 </section>
-<script type="module" src="./app.js?v=last-delivery"></script></body></html>
+<script type="module" src="./app.js?v=photo-inventory"></script></body></html>

@@ -121,7 +121,33 @@ crank.visible=false;
 const inventory=new Set();
 let selectedItem=null;
 let musicWound=false;
-const itemNames={key:'Brass key',crank:'Winding crank'};
+const itemNames={
+  key:'Brass key',
+  crank:'Winding crank',
+  familyPhoto:'Family photograph',
+  adaPhoto:'Ada’s photograph',
+};
+const inventoryPhotos={
+  familyPhoto:{title:'Family photograph',text:'A space in the family portrait marks where Ada stood. On the frame she scratched “I counted a quarter of the clock.”'},
+  adaPhoto:{title:'Ada’s photograph',text:'Ada is behind glass. The courier wrote “I know which room you’re in” on the back.'},
+};
+
+function viewPhoto(item){
+  const {title,text}=inventoryPhotos[item];
+  show(title,text);
+  document.querySelector('#close').focus();
+}
+
+function takePhoto(item){
+  inventory.add(item);
+  update();
+  viewPhoto(item);
+}
+
+function photoActions(item){
+  const label=item==='adaPhoto'?'Take Ada’s photograph':'Take family photograph';
+  return inventory.has(item)?[]:[[label,()=>takePhoto(item)]];
+}
 
 function toggleItem(item){
   selectedItem=selectedItem===item?null:item;
@@ -254,8 +280,10 @@ detailsButton.onclick=()=>setDetailsVisible(details.hidden);
 function show(title,text,actions=[]){
   document.querySelector('#itemTitle').textContent=title;
   document.querySelector('#itemText').textContent=text;
-  document.querySelector('#portrait').hidden=title!=='A space beside you';
-  document.querySelector('#parcelPhoto').hidden=!['A parcel arrives','A parcel from the courier'].includes(title);
+  const viewingPhoto=Object.values(inventoryPhotos).some(photo=>photo.title===title);
+  inspection.classList.toggle('viewing-photo',viewingPhoto);
+  document.querySelector('#portrait').hidden=!['A space beside you',inventoryPhotos.familyPhoto.title].includes(title);
+  document.querySelector('#parcelPhoto').hidden=!['A parcel arrives','A parcel from the courier',inventoryPhotos.adaPhoto.title].includes(title);
   const buttons=document.querySelector('#actions');
   buttons.replaceChildren();
   for(const [label,fn] of actions){
@@ -488,7 +516,8 @@ function advance(){
   roomEntered=performance.now();
   solved=hasKey=melodyPlayed=musicWound=false;
   doorUnlocked=false;
-  inventory.clear();
+  inventory.delete('key');
+  inventory.delete('crank');
   selectedItem=null;
   key.visible=false;
   clueBook.replaceChildren();
@@ -537,17 +566,26 @@ function fail(){
     box(.22,.085,.16,0x967952,0,0,0,parcel);
     box(.014,.089,.164,0x584535,0,0,0,parcel);
     box(.223,.089,.014,0x584535,0,0,0,parcel);
-    register(parcel,'Parcel from the courier',()=>show('A parcel from the courier','Inside is a photograph of Ada behind glass. On the back: “I know which room you’re in.”'));
+    register(parcel,'Parcel from the courier',()=>show(
+      'A parcel from the courier',
+      inventoryPhotos.adaPhoto.text,
+      photoActions('adaPhoto'),
+    ));
   }
   const warning=threatLines[threat-1];
   show('A parcel arrives','Wrong combination. The lock is still closed and the key hasn’t dropped. You lost 30 seconds. '+warning,[
+    ...photoActions('adaPhoto'),
     ['Try again',()=>showLock()],
   ]);
   say(warning);
   nextStep=performance.now()+450;
   update();
 }
-register(photo,'Inspect photograph',()=>reveal('A space beside you','There is a space in the photograph where Ada stood. On the frame she scratched “I counted a quarter of the clock.”'));
+register(photo,'Inspect photograph',()=>{
+  const {text}=inventoryPhotos.familyPhoto;
+  remember('A space beside you',text);
+  show('A space beside you',text,photoActions('familyPhoto'));
+});
 const puzzles=[
   {
     title:'Set the clock',slots:['Hour','Minute'],
@@ -738,8 +776,12 @@ function update(){
   for(const item of inventory){
     const button=document.createElement('button');
     button.textContent=itemNames[item];
-    button.setAttribute('aria-pressed',String(selectedItem===item));
-    button.onclick=()=>toggleItem(item);
+    if(item in inventoryPhotos){
+      button.onclick=()=>viewPhoto(item);
+    }else{
+      button.setAttribute('aria-pressed',String(selectedItem===item));
+      button.onclick=()=>toggleItem(item);
+    }
     pockets.append(button);
   }
   document.body.classList.toggle('using-item',Boolean(selectedItem));
