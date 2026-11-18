@@ -97,9 +97,13 @@ const key=new T.Group();
 key.position.set(.065,-.051,-.032);
 key.rotation.set(-Math.PI/2,0,.15);
 drawers[0].tray.add(key);
-mesh(new T.TorusGeometry(.032,.009,12,24),mat(0xd1ad59),0,0,0,key);
-box(.102,.014,.016,0xd1ad59,.08,0,0,key);
-for(const x of [.099,.124])box(.013,.029,.014,0xd1ad59,x,-.013,0,key);
+const keyBrass=new T.MeshStandardMaterial({
+  color:0xe7bc66,roughness:.34,metalness:.32,emissive:0x684213,emissiveIntensity:.38,
+});
+key.scale.setScalar(1.16);
+mesh(new T.TorusGeometry(.032,.009,12,24),keyBrass,0,0,0,key);
+box(.102,.014,.016,keyBrass,.08,0,0,key);
+for(const x of [.099,.124])box(.013,.029,.014,keyBrass,x,-.013,0,key);
 key.visible=false;
 // A transparent hit surface makes the key's bow and shaft one clickable target.
 const keyHit=mesh(new T.PlaneGeometry(.21,.13),new T.MeshBasicMaterial({
@@ -146,7 +150,8 @@ doorLeaf.position.x=.575;
 hinge.add(doorLeaf);
 box(1.15,2.65,.09,0x22352c,0,0,0,doorLeaf);
 for(const y of [-.6,.55])box(.82,.8,.04,0x18291f,0,y,.07,doorLeaf);
-mesh(new T.SphereGeometry(.045),mat(0xbfa069),.4,-.1,.15,doorLeaf);
+const doorKnob=mesh(new T.SphereGeometry(.045),mat(0xbfa069),.4,-.1,.15,doorLeaf);
+let lockedKnobUntil=0;
 let doorUnlocked=false;
 let doorState='closed';
 for(let x of [1.95,3.25])box(.13,2.85,.17,0x7b6a4d,x,1.4,-2.8);box(1.42,.13,.17,0x7b6a4d,2.6,2.8,-2.8);
@@ -516,7 +521,9 @@ function fail(){
     register(parcel,'Parcel from the courier',()=>show('A parcel from the courier','Inside is a photograph of Ada behind glass. On the back: “I know which room you’re in.”'));
   }
   const warning=threatLines[threat-1];
-  show('A parcel arrives',warning+' The parcel holds a photograph of Ada behind glass. You lost 30 seconds.');
+  show('A parcel arrives','Wrong combination. The lock is still closed and the key hasn’t dropped. You lost 30 seconds. '+warning,[
+    ['Try again',()=>showLock()],
+  ]);
   say(warning);
   nextStep=performance.now()+450;
   update();
@@ -554,7 +561,8 @@ const chimePitch={Bird:262,Bell:330,Moon:392,Star:523};
 
 function showLock(sequence=[]){
   if(solved){
-    show('The lock is open','Something dropped inside the chest.');
+    const name=drawerNames[puzzles[room].keyDrawer].toLowerCase();
+    show('The lock is open',hasKey?'You’ve already collected the brass key.':'The brass key dropped into the '+name+'. Pull it fully open to pick it up.');
     return;
   }
   if(room===2&&melodyPlayed&&inspectedObject!==mirror){
@@ -567,7 +575,7 @@ function showLock(sequence=[]){
   const options=Array.isArray(puzzle.choices[0])?puzzle.choices[slot]:puzzle.choices;
   const actions=complete
     ?[['Try combination',()=>{
-      if(!sequence.every((value,index)=>value===puzzle.answer[index])){fail();return;}
+      if(sequence.length!==puzzle.answer.length||!puzzle.answer.every((value,index)=>value===sequence[index])){fail();return;}
       if(room===2&&!melodyPlayed){
         melodyPlayed=true;
         hintLevel=0;
@@ -580,7 +588,9 @@ function showLock(sequence=[]){
       }
       solved=true;
       close();
-      say(room===2?'Ada knocks from beyond the door. The last key falls into the chest.':'The lock clicks. You hear brass drop into one of the drawers.');
+      const name=drawerNames[puzzles[room].keyDrawer].toLowerCase();
+      say('Lock solved. The brass key dropped into the '+name+'.');
+      show('Lock solved','The brass key has dropped into the '+name+'. Pull it fully open to pick up the key.');
       thud(.14,.08,125);
       update();
     }]]
@@ -596,34 +606,44 @@ register(house,'Inspect dollhouse',()=>show('The little house','The clockwork un
 
 const doorAngles={closed:0,nudged:-.14,open:-1.32};
 function stepThrough(){
+  if(!solved||!doorUnlocked||doorState!=='open'||ending)return;
   if(room<2)advance();
   else finish();
 }
 function operateDoor(){
-  if(doorState==='open'){
+  if(doorUnlocked&&doorState==='open'){
     show('The door is open',room===2?'Ada stands just beyond the threshold. She holds out her hand.':'Something moves in the dark beyond.',[
       [room===2?'Take Ada’s hand':'Step through',stepThrough],
       ['Shut door',close],
     ]);
-  }else if(doorUnlocked||useItem('key')){
+  }else if(solved&&(doorUnlocked||useItem('key'))){
     doorUnlocked=true;
     update();
     doorState='nudged';
     show('The door gives','The brass key turns. You can push the door the rest of the way.',[
-      ['Open door',()=>{doorState='open';operateDoor();}],
+      ['Open door',openUnlockedDoor],
       ['Shut door',close],
     ]);
   }else{
-    doorState='nudged';
-    const actions=[['Shut door',close]];
+    doorState='closed';
+    lockedKnobUntil=performance.now()+420;
+    thud(.06,0,115);
+    const actions=[];
     if(inventory.has('key'))actions.unshift(['Use brass key',()=>{
       selectedItem='key';
       operateDoor();
     }]);
-    show('The chain catches',hasKey?'Select the brass key in your inventory and use it on this door.':'The door moves a little, then catches. The room lock releases a brass key.',actions);
+    show('Door locked',hasKey?'Use the brass key from your inventory.':solved?
+      'Pull open the '+drawerNames[puzzles[room].keyDrawer].toLowerCase()+' to collect the brass key.':
+      'Solve the room lock before you can collect the brass key.',actions);
   }
 }
-register(door,'Nudge door',operateDoor);
+function openUnlockedDoor(){
+  if(!doorUnlocked||!solved)return;
+  doorState='open';
+  operateDoor();
+}
+register(door,'Try door handle',operateDoor);
 
 function showLetter(){
   remember('Ada’s letter',puzzles[room].letter);
@@ -673,8 +693,11 @@ function setDrawer(drawer,state){
     hasVisibleKey?'Click the brass key to pick it up.':'',
     hasCrank?'A small winding crank lies beside the letter.':'',
   ].filter(Boolean);
-  show(drawer.name,contents.join(' ')||'The tray is empty.',actions);
-  setDetailsVisible(false);
+  const emptyText=drawer.tray===key.parent&&!solved
+    ?'The room lock has to be solved before it releases a key.'
+    :'The tray is empty.';
+  show(drawer.name,contents.join(' ')||emptyText,actions);
+  if(!hasVisibleKey)setDetailsVisible(false);
 }
 for(const drawer of drawers){
   register(drawer.tray,'Nudge '+drawer.name.toLowerCase(),()=>setDrawer(drawer,'nudged'));
@@ -687,7 +710,7 @@ function update(){
   document.querySelector('#threat').textContent=threatLabels[threat];
   const search=['Find the time Ada remembers.','Match the portrait seals to the family register.','Recover Ada’s tune from the sheet music and mobile.'];
   document.querySelector('#objective').textContent=hasKey?'You have the key. Open the door.':
-    solved?'Search the drawers for the brass key.':
+    solved?'Collect the brass key from the '+drawerNames[puzzles[room].keyDrawer].toLowerCase()+'.':
     room===2&&melodyPlayed?'Read the marks in the nursery mirror.':search[room];
   document.querySelector('#progress').textContent=(room+1)+' / 3';
   const pockets=document.querySelector('#inventory');
@@ -887,8 +910,8 @@ renderer.domElement.onpointerup=e=>{
       if(hit===doorway||hit.parent===ada)stepThrough();
       else close();
     }
-    else if(doorUnlocked){doorState='open';operateDoor();}
-    else if(selectedItem==='key')operateDoor();
+    else if(doorUnlocked)openUnlockedDoor();
+    else operateDoor();
     return;
   }
   if(object===musicBox&&selectedItem==='crank'){inspectObject(object);return;}
@@ -954,6 +977,8 @@ function tick(){
   crank.visible=room===2&&!musicWound&&!inventory.has('crank')&&crank.parent.position.z>.23;
   key.visible=solved&&!hasKey&&key.parent.position.z>.23;
   hinge.rotation.y=T.MathUtils.lerp(hinge.rotation.y,doorAngles[doorState],ease);
+  const rattle=Math.max(0,lockedKnobUntil-now)/420;
+  doorKnob.position.x=.4+Math.sin(rattle*26)*rattle*.018;
   ada.visible=room===2&&doorState==='open'&&hinge.rotation.y<-.8;
   if(zoomTarget){
     camera.position.lerp(zoomTarget,ease);
