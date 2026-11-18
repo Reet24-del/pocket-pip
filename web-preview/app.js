@@ -168,19 +168,38 @@ scene.add(silhouette);
 const courierBacklight=new T.PointLight(0x819abc,0,2.5);
 courierBacklight.position.set(-.4,1.6,-.3);
 silhouette.add(courierBacklight);
+mesh(new T.CylinderGeometry(.065,.09,.17,14),coat,0,1.52,0,silhouette);
 mesh(new T.SphereGeometry(.13,18,12),coat,0,1.69,0,silhouette).scale.set(.83,1.22,.9);
 mesh(new T.CylinderGeometry(.19,.19,.034,24),coat,0,1.795,0,silhouette);
 mesh(new T.CylinderGeometry(.102,.12,.12,24),coat,0,1.859,0,silhouette);
 mesh(new T.CylinderGeometry(.23,.31,.85,24),coat,0,1.06,0,silhouette).scale.z=.66;
+const courierLegs=[];
+const courierArms=[];
 for(const x of [-.15,.15]){
-  box(.123,.66,.125,coat,x,.33,0,silhouette);
-  box(.135,.09,.23,coat,x,.06,.046,silhouette);
-  box(.11,.58,.12,coat,x*1.88,1.14,0,silhouette).rotation.z=x*.8;
+  const leg=new T.Group();
+  leg.position.set(x,.66,0);
+  silhouette.add(leg);
+  courierLegs.push(leg);
+  const arm=new T.Group();
+  arm.position.set(x*1.88,1.4,0);
+  silhouette.add(arm);
+  courierArms.push(arm);
+  box(.123,.66,.125,coat,0,-.33,0,leg);
+  box(.135,.09,.23,coat,0,-.60,.046,leg);
+  box(.11,.58,.12,coat,0,-.26,0,arm).rotation.z=x*.8;
 }
 for(const x of [-.05,.05]){
   mesh(new T.SphereGeometry(.014,8,8),new T.MeshBasicMaterial({color:0xc3b59b}),x,1.705,.11,silhouette);
 }
 silhouette.visible=false;
+const heldParcel=new T.Group();
+heldParcel.position.set(-.075,-.52,.04);
+courierArms[1].add(heldParcel);
+box(.30,.21,.15,0xa67c52,0,0,0,heldParcel);
+box(.025,.215,.153,0x4e2c1f,.075,0,0,heldParcel);
+box(.302,.024,.153,0x4e2c1f,0,0,0,heldParcel);
+box(.12,.07,.004,0xe2cb9e,-.055,.044,.078,heldParcel);
+heldParcel.visible=false;
 const courierRoute=[[-3.25,-2.55],[-3.14,-.85],[-2.95,.35],[-2.7,1.55]];
 const threatLabels=['Footsteps outside','At the window','Inside the house','In the hall','Just behind the door'];
 const threatLines=[
@@ -751,7 +770,7 @@ document.querySelector('#sound').onclick=e=>{
   if(enabled)context?.resume();
 };
 document.querySelector('#next').onclick=()=>{if(ending){location.reload();return}if(storyStep++===0){document.querySelector('#storyTitle').textContent='Tonight, she wrote to you.';document.querySelector('#storyText').textContent='An envelope arrived without a stamp. Inside was Ada’s handwriting: “I did not climb out. You turned the house. Come back before the clock remembers.” You unlock Briar House. Three knocks come from inside.';document.querySelector('#next').textContent='Take the lantern';}else{started=true;document.body.classList.add('playing');document.querySelector('#story').style.display='none';if(window.AudioContext){context=new AudioContext();context.resume().catch(()=>{});}playKnock(.14);nextStep=performance.now()+6500;update();say('The photograph on the desk. Wasn’t someone standing beside you?');}};
-document.querySelector('#light').onclick=()=>{on=!on;document.querySelector('#light').textContent='Lantern '+(on?'on':'off')};addEventListener('keydown',e=>{if(e.code==='Escape'){
+document.querySelector('#light').onclick=()=>{if(ending)return;on=!on;document.querySelector('#light').textContent='Lantern '+(on?'on':'off')};addEventListener('keydown',e=>{if(e.code==='Escape'){
   close();
   document.querySelector('#guide').hidden=true;
   document.querySelector('#journal').setAttribute('aria-expanded','false');
@@ -831,6 +850,7 @@ addEventListener('keydown',event=>{
 addEventListener('keyup',event=>keys.delete(event.code));
 addEventListener('blur',()=>{keys.clear();walking.set(0,0);down=false;});
 document.querySelector('#journal').onclick=()=>{
+  if(ending)return;
   const journal=document.querySelector('#guide');
   journal.hidden=!journal.hidden;
   document.querySelector('#journal').setAttribute('aria-expanded',String(!journal.hidden));
@@ -858,6 +878,7 @@ function hitObject(event){
 }
 let dragDistance=0;
 renderer.domElement.onpointerdown=e=>{
+  if(ending)return;
   down=true;
   dragDistance=0;
   lastX=e.clientX;
@@ -945,6 +966,77 @@ function renderTimer(){
   const seconds=Math.ceil(remaining);
   timer.textContent=Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
 }
+const caughtScene=document.querySelector('#caughtScene');
+const caughtCaption=document.querySelector('#caughtCaption');
+const caughtResult=document.querySelector('#caughtResult');
+const retryCaught=document.querySelector('#retryCaught');
+retryCaught.onclick=()=>location.reload();
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+const caughtCamera=new T.Vector3(0,1.53,3.94);
+const caughtLook=new T.Vector3();
+const caughtDarkness=document.querySelector('#caughtDarkness');
+let caughtAt=null;
+
+function beginCapture(now){
+  ending=true;
+  caughtAt=now;
+  close();
+  zoomTarget=null;
+  keys.clear();
+  down=false;
+  document.querySelector('#guide').hidden=true;
+  document.querySelector('#journal').setAttribute('aria-expanded','false');
+  document.body.classList.add('caught');
+  caughtScene.hidden=false;
+
+  silhouette.position.set(0,0,.74);
+  silhouette.rotation.set(0,0,0);
+  silhouette.visible=true;
+  heldParcel.visible=true;
+  courierBacklight.intensity=4;
+  courierBacklight.color.setHex(0xb87849);
+  for(let step=0;step<4;step++){
+    thud(.09+step*.037,.72+step*.40,68-step*4,step%2?.24:-.24);
+  }
+  thud(.22,3.5,44);
+}
+
+function animateCapture(now,dt){
+  const seconds=(now-caughtAt)/1000;
+  const approach=T.MathUtils.smoothstep(seconds,.48,2.55);
+  const reach=T.MathUtils.smoothstep(seconds,2.55,3.28);
+  const blackout=T.MathUtils.smoothstep(seconds,3.45,4.32);
+  const motion=reducedMotion.matches?0:1;
+  const stride=Math.sin(approach*Math.PI*8)*.24*motion;
+  silhouette.position.set(0,Math.abs(stride)*.085,.74+approach*1.92);
+  courierLegs[0].rotation.x=stride;
+  courierLegs[1].rotation.x=-stride;
+  courierArms[0].rotation.x=-stride*.72;
+  courierArms[1].rotation.x=stride*.72-reach*1.35;
+  heldParcel.rotation.x=reach*1.28;
+
+  if(motion){
+    camera.position.lerp(caughtCamera,1-Math.exp(-dt*9));
+  }else camera.position.copy(caughtCamera);
+  caughtLook.set(.08,1.37-reach*.13,silhouette.position.z);
+  viewTarget.position.copy(camera.position);
+  viewTarget.lookAt(caughtLook);
+  camera.quaternion.slerp(viewTarget.quaternion,motion?1-Math.exp(-dt*11):1);
+
+  const initialDarkness=motion?.72*(1-T.MathUtils.smoothstep(seconds,.12,.72)):0;
+  caughtDarkness.style.opacity=String(Math.max(initialDarkness,blackout*.92));
+  lamp.intensity=16*(1-blackout);
+  courierBacklight.intensity=3.6*(1-blackout);
+  const line=seconds<1.05?'The clock stops. Footsteps cross the room.':
+    seconds<2.58?'':'“One last delivery.”';
+  if(caughtCaption.textContent!==line)caughtCaption.textContent=line;
+  if(seconds>=4.42&&caughtResult.hidden){
+    caughtCaption.hidden=true;
+    caughtResult.hidden=false;
+    retryCaught.focus();
+  }
+}
+
 function tick(){
   const now=performance.now();
   const elapsed=(now-lastTime)/1000;
@@ -954,12 +1046,7 @@ function tick(){
     remaining=Math.max(0,remaining-elapsed);
     renderTimer();
     if(remaining===0){
-      ending=true;
-      close();
-      document.querySelector('#story').style.display='flex';
-      document.querySelector('#storyTitle').textContent='The courier found you.';
-      document.querySelector('#storyText').textContent='The last parcel is addressed to you. Ada is still inside. Try again. The clues are waiting.';
-      document.querySelector('#next').textContent='Try again';
+      beginCapture(now);
     }else if(now>=nextStep){
       const urgency=Math.max(threat,remaining<=60?3:0);
       const volume=.035+urgency*.027;
@@ -998,10 +1085,10 @@ function tick(){
     viewTarget.position.copy(camera.position);
     viewTarget.lookAt(lookTarget);
   }else viewTarget.rotation.set(pitch,yaw,0,'YXZ');
-  camera.quaternion.slerp(viewTarget.quaternion,1-Math.exp(-dt*14));
+  if(caughtAt===null)camera.quaternion.slerp(viewTarget.quaternion,1-Math.exp(-dt*14));
 
 
-  if(silhouette.visible&&threat>0){
+  if(caughtAt===null&&silhouette.visible&&threat>0){
     const [x,z]=courierRoute[threat-1];
     activeThreat.set(x,0,z);
     silhouette.position.lerp(activeThreat,1-Math.exp(-dt*1.25));
@@ -1018,9 +1105,10 @@ function tick(){
     mobileArm.rotation.y=Math.sin(sinceEntry*.75)*.27;
   }
   danger.style.opacity=String(started&&!ending?Math.min(.72,threat*.12+(remaining<=60?.2:0)):0);
+  lamp.intensity=on?25:0;
+  if(caughtAt!==null)animateCapture(now,dt);
   lamp.position.copy(camera.position);
   lamp.target.position.copy(camera.position).add(camera.getWorldDirection(activeThreat).multiplyScalar(6));
-  lamp.intensity=on?25:0;
   glow.intensity=1.7+Math.sin(now*.004)*.15;
   renderer.render(scene,camera);
   requestAnimationFrame(tick);
