@@ -5,7 +5,14 @@ const camera=new T.PerspectiveCamera(52,1,.05,25);camera.position.set(0,1.65,4.3
 scene.add(new T.HemisphereLight(0x718b99,0x2d231b,.7));
 const lamp=new T.SpotLight(0xffd59a,25,15,.54,.7,1.2);scene.add(lamp);scene.add(lamp.target);lamp.castShadow=true;
 let on=true,started=false,found=false,clockSet=false,houseSet=false,hasKey=false,ending=false,yaw=0,storyStep=0,context;
-const cap=document.querySelector('#caption');function say(s){cap.textContent=s}
+const cap=document.querySelector('#caption');
+let captionTimeout;
+function say(text){
+  cap.textContent=text;
+  cap.classList.add('visible');
+  clearTimeout(captionTimeout);
+  captionTimeout=setTimeout(()=>cap.classList.remove('visible'),5500);
+}
 const mat=(c)=>new T.MeshStandardMaterial({color:c,roughness:.7});
 function mesh(g,m,x,y,z,parent=scene){const o=new T.Mesh(g,m);o.position.set(x,y,z);parent.add(o);o.castShadow=true;o.receiveShadow=true;return o}
 function box(w,h,d,c,x,y,z,p=scene){return mesh(new T.BoxGeometry(w,h,d),typeof c==='number'?mat(c):c,x,y,z,p)}
@@ -37,7 +44,8 @@ const roof=mesh(new T.ConeGeometry(.5,.35,4),mat(0x3c4843),0,.67,0,house);roof.r
 box(.12,.2,.03,0x493d2b,0,.16,.27,house);
 for(const x of [-.2,.2]){box(.11,.13,.02,0x142d33,x,.35,.26,house);box(.01,.13,.03,0x877753,x,.35,.28,house); }
 const cabinet=new T.Group();
-cabinet.position.set(2.17,.44,-1.65);
+cabinet.position.set(-3.56,.44,1.15);
+cabinet.rotation.y=Math.PI/2;
 scene.add(cabinet);
 for(const x of [-.3,.3])box(.055,.8,.49,wm,x,0,0,cabinet);
 for(const y of [-.38,.39])box(.69,.055,.54,wm,0,y,0,cabinet);
@@ -208,6 +216,8 @@ function show(title,text,actions=[]){
   setDetailsVisible(true);
   inspection.classList.remove('hidden');
   document.body.classList.add('inspecting');
+  document.querySelector('#guide').hidden=true;
+  document.querySelector('#journal').setAttribute('aria-expanded','false');
 }
 function shutProps(){
   for(const drawer of drawers)drawer.state='closed';
@@ -359,10 +369,11 @@ function takeKey(drawer){
   update();
 }
 function frameDrawer(drawer){
-  const target=cabinet.position.clone().add(new T.Vector3(0,drawer.tray.position.y,0));
+  cabinet.updateWorldMatrix(true,false);
+  const height=drawer.tray.position.y;
   const front=drawer.state==='open'?1.38:1.19;
-  zoomTarget=target.clone().add(new T.Vector3(-.14,1.17,front));
-  lookTarget=target.add(new T.Vector3(-.055,-.16,drawer.state==='open'?.62:.33));
+  zoomTarget=cabinet.localToWorld(new T.Vector3(-.14,height+1.17,front));
+  lookTarget=cabinet.localToWorld(new T.Vector3(-.055,height-.16,drawer.state==='open'?.62:.33));
 }
 function setDrawer(drawer,state){
   drawer.state=state;
@@ -372,6 +383,7 @@ function setDrawer(drawer,state){
   if(state==='nudged'){
     actions.unshift(['Pull open',()=>setDrawer(drawer,'open')]);
     show(drawer.name,'The drawer moves a little. Pull again to see inside.',actions);
+    setDetailsVisible(false);
     return;
   }
   if(hasVisibleKey)actions.unshift(['Take brass key',()=>takeKey(drawer)]);
@@ -381,6 +393,7 @@ function setDrawer(drawer,state){
     hasVisibleKey?'Click the brass key to pick it up.':'',
   ].filter(Boolean);
   show(drawer.name,contents.join(' ')||'The tray is empty.',actions);
+  setDetailsVisible(false);
 }
 for(const drawer of drawers){
   register(drawer.tray,'Nudge '+drawer.name.toLowerCase(),()=>setDrawer(drawer,'nudged'));
@@ -389,9 +402,7 @@ for(const drawer of drawers){
 
 register(win,'Inspect window',()=>show('Beyond the glass',room===2?'A small handprint appears in the mist. Ada is still alive.':'Fresh footprints stop beneath the window. A courier has been watching the house.'));
 register(candle,'Inspect candle',()=>show('Warm wax','Someone was here moments ago. The wax is still warm.'));
-// Every visible furnishing can be inspected; searching is safe.
-const labeled=new Set(interact);for(const obj of [...scene.children]){if(obj.isMesh&&!labeled.has(obj))register(obj,'Search '+(room===0?'room':'corner'),()=>show('A quiet corner','Dust, scratches, and signs of someone passing. The photograph, clock, drawer, and door carry the strongest clues.'));}
-function update(){document.querySelector('#threat').textContent=threatLabels[threat];document.querySelector('#objective').textContent=!found?'Inspect the photograph or search the drawers for clues.':!solved?'Use the clue to solve the room lock.':!hasKey?'The lock is open. Search the drawers for the brass key.':'You have the key. Open the door.';document.querySelector('#progress').textContent='Room '+(room+1)+' / 3 · '+mistakes+' mistakes';}
+function update(){document.querySelector('#threat').textContent=threatLabels[threat];document.querySelector('#objective').textContent=!found?'Inspect the photograph or search the drawers for clues.':!solved?'Use the clue to solve the room lock.':!hasKey?'The lock is open. Search the drawers for the brass key.':'You have the key. Open the door.';document.querySelector('#progress').textContent=(room+1)+' / 3';document.querySelector('#inventory').textContent=hasKey?'Brass key':'Empty pockets';}
 function thud(volume,delay,frequency,pan=0){
   if(!context||document.querySelector('#sound').getAttribute('aria-pressed')==='false')return;
   const time=context.currentTime+delay;
@@ -417,11 +428,16 @@ document.querySelector('#sound').onclick=e=>{
   e.currentTarget.textContent=enabled?'Sound on':'Sound off';
   if(enabled)context?.resume();
 };
-document.querySelector('#next').onclick=()=>{if(ending){location.reload();return}if(storyStep++===0){document.querySelector('#storyTitle').textContent='Tonight, she wrote to you.';document.querySelector('#storyText').textContent='An envelope arrived without a stamp. Inside was Ada’s handwriting: “I did not climb out. You turned the house. Come back before the clock remembers.” You unlock Briar House. Three knocks come from inside.';document.querySelector('#next').textContent='Take the lantern';}else{started=true;document.querySelector('#story').style.display='none';if(window.AudioContext){context=new AudioContext();context.resume().catch(()=>{});}playKnock(.14);nextStep=performance.now()+6500;say('The photograph on the desk. Wasn’t someone standing beside you?');}};
-document.querySelector('#light').onclick=()=>{on=!on;document.querySelector('#light').textContent='Lantern '+(on?'on':'off')};addEventListener('keydown',e=>{if(e.code==='Escape'&&!inspection.classList.contains('hidden'))close();if(e.code==='KeyL')document.querySelector('#light').click();if(e.code==='KeyR')location.reload()});
+document.querySelector('#next').onclick=()=>{if(ending){location.reload();return}if(storyStep++===0){document.querySelector('#storyTitle').textContent='Tonight, she wrote to you.';document.querySelector('#storyText').textContent='An envelope arrived without a stamp. Inside was Ada’s handwriting: “I did not climb out. You turned the house. Come back before the clock remembers.” You unlock Briar House. Three knocks come from inside.';document.querySelector('#next').textContent='Take the lantern';}else{started=true;document.querySelector('#story').style.display='none';if(window.AudioContext){context=new AudioContext();context.resume().catch(()=>{});}playKnock(.14);nextStep=performance.now()+6500;update();say('The photograph on the desk. Wasn’t someone standing beside you?');}};
+document.querySelector('#light').onclick=()=>{on=!on;document.querySelector('#light').textContent='Lantern '+(on?'on':'off')};addEventListener('keydown',e=>{if(e.code==='Escape'){
+  close();
+  document.querySelector('#guide').hidden=true;
+  document.querySelector('#journal').setAttribute('aria-expanded','false');
+}if(e.code==='KeyL')document.querySelector('#light').click();if(e.code==='KeyR')location.reload()});
 let hintLevel=0;
 document.querySelector('#hint').onclick=()=>{
   if(!started||ending)return;
+  document.querySelector('#guide').hidden=true;
   const puzzle=puzzles[room];
   if(hasKey){
     show('Hint','Use the brass key at the door, then step through.');
@@ -435,7 +451,9 @@ document.querySelector('#hint').onclick=()=>{
 function inspectObject(object){
   if(!started||ending)return;
   keys.clear();
-  if(!inspecting&&!zoomTarget){
+  walking.set(0,0);
+  if(!inspecting){
+    if(zoomTarget)camera.position.copy(home.position);
     home.position.copy(camera.position);
     home.yaw=yaw;
     home.pitch=pitch;
@@ -467,12 +485,41 @@ for(const [label,object] of [
   button.onclick=()=>inspectObject(object);
   document.querySelector('#objects').append(button);
 }
-const pointer=new T.Vector2();const ray=new T.Raycaster();let down=false,last=0,pitch=0; const keys=new Set(); addEventListener('keydown',e=>keys.add(e.code)); addEventListener('keyup',e=>keys.delete(e.code)); addEventListener('blur',()=>keys.clear());
+const pointer=new T.Vector2();
+const ray=new T.Raycaster();
+let down=false,lastX=0,lastY=0,pitch=0;
+const keys=new Set();
+const walking=new T.Vector2();
+const interactiveKeys=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight']);
+addEventListener('keydown',event=>{
+  if(event.target.matches('input,textarea,select'))return;
+  if(interactiveKeys.has(event.code))event.preventDefault();
+  keys.add(event.code);
+});
+addEventListener('keyup',event=>keys.delete(event.code));
+addEventListener('blur',()=>{keys.clear();walking.set(0,0);down=false;});
+document.querySelector('#journal').onclick=()=>{
+  const journal=document.querySelector('#guide');
+  journal.hidden=!journal.hidden;
+  document.querySelector('#journal').setAttribute('aria-expanded',String(!journal.hidden));
+  keys.clear();
+  walking.set(0,0);
+};
+document.querySelector('#closeJournal').onclick=()=>{
+  document.querySelector('#guide').hidden=true;
+  document.querySelector('#journal').setAttribute('aria-expanded','false');
+};
 function hitObject(event){
   const bounds=renderer.domElement.getBoundingClientRect();
   pointer.set((event.clientX-bounds.left)/bounds.width*2-1,1-(event.clientY-bounds.top)/bounds.height*2);
   ray.setFromCamera(pointer,camera);
-  const hit=ray.intersectObjects(interact,true).find(({object})=>object.parent!==key||key.visible);
+  const hit=ray.intersectObjects(scene.children,true).find(({object})=>{
+    if(!object.isMesh)return false;
+    for(let parent=object;parent;parent=parent.parent){
+      if(!parent.visible)return false;
+    }
+    return true;
+  });
   let object=hit?.object;
   while(object&&!object.userData.action)object=object.parent;
   return {object,mesh:hit?.object};
@@ -481,10 +528,13 @@ let dragDistance=0;
 renderer.domElement.onpointerdown=e=>{
   down=true;
   dragDistance=0;
-  last=e.clientX;
+  lastX=e.clientX;
+  lastY=e.clientY;
   renderer.domElement.setPointerCapture(e.pointerId);
 };
 renderer.domElement.onpointermove=e=>{
+  document.querySelector('#hover').style.left=Math.min(innerWidth-130,Math.max(80,e.clientX))+'px';
+  document.querySelector('#hover').style.top=Math.min(innerHeight-110,e.clientY+25)+'px';
   const {object,mesh:hit}=hitObject(e);
   const drawer=object?.userData.drawer;
   const label=drawer?.state==='open'&&hit?.parent===key?'Take brass key':
@@ -494,16 +544,20 @@ renderer.domElement.onpointermove=e=>{
     object===door&&doorState==='open'?(hit===doorway?'Step through':'Shut door'):
     object===door&&doorState==='nudged'&&hasKey?'Open door':
     object?.userData.name;
-  document.querySelector('#hover').textContent=started&&!ending?(label||''):'';
+  document.querySelector('#hover').textContent=started&&!ending&&!down?(label||''):'';
   renderer.domElement.style.cursor=started&&!ending&&label?'pointer':'';
   if(down&&!inspecting){
-    dragDistance+=Math.abs(e.clientX-last)+Math.abs(e.movementY);
-    yaw-=(e.clientX-last)*.003;
-    pitch=Math.max(-1.1,Math.min(1.1,pitch-e.movementY*.003));
-    last=e.clientX;
+    const dx=e.clientX-lastX;
+    const dy=e.clientY-lastY;
+    dragDistance+=Math.abs(dx)+Math.abs(dy);
+    yaw-=dx*.003;
+    pitch=Math.max(-1.1,Math.min(1.1,pitch-dy*.003));
+    lastX=e.clientX;
+    lastY=e.clientY;
   }
 };
 renderer.domElement.onpointercancel=()=>{down=false;};
+renderer.domElement.onpointerleave=()=>{document.querySelector('#hover').textContent='';};
 renderer.domElement.onpointerup=e=>{
   down=false;
   if(!started||ending||dragDistance>=5)return;
@@ -526,7 +580,23 @@ renderer.domElement.onpointerup=e=>{
   if(object&&(!inspecting||drawer||object===door))inspectObject(object);
 
 };
-function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}resize();addEventListener('resize',resize);
+function resize(){
+  renderer.setSize(innerWidth,innerHeight);
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  if(inspectedObject?.userData.drawer)frameDrawer(inspectedObject.userData.drawer);
+}
+resize();
+addEventListener('resize',resize);
+const viewTarget=new T.PerspectiveCamera();
+function canWalk(x,z){
+  if(Math.abs(x)>3.65||z< -2.55||z>4.1)return false;
+  if(Math.abs(x)<1.93&&z> -2.2&&z< -.67)return false;
+  if(x< -2.68&&z>.6&&z<1.7)return false;
+  if(x< -3.03&&z> -1.9&&z<.5)return false;
+  if(room===2&&x> -2.95&&x< -1.05&&z> -2.05&&z< -.8)return false;
+  return true;
+}
 const timer=document.querySelector('#timer');
 const danger=document.querySelector('#danger');
 const activeThreat=new T.Vector3();
@@ -569,18 +639,22 @@ function tick(){
     camera.position.lerp(zoomTarget,ease);
     if(camera.position.distanceTo(zoomTarget)<.01)zoomTarget=null;
   }
-  camera.rotation.set(pitch,yaw,0,'YXZ');
-  if(started&&!inspecting&&!ending){
-    const dx=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0);
-    const dz=(keys.has('KeyS')?1:0)-(keys.has('KeyW')?1:0);
-    const nx=camera.position.x+(dx*Math.cos(yaw)+dz*Math.sin(yaw))*dt*1.1;
-    const nz=camera.position.z+(-dx*Math.sin(yaw)+dz*Math.cos(yaw))*dt*1.1;
-    if(!(Math.abs(nx)<1.9&&nz<-.4&&nz>-2.05)&&Math.abs(nx)<3.65&&nz>-2.55&&nz<4.1){
-      camera.position.x=nx;
-      camera.position.z=nz;
-    }
-  }
-  if(inspecting&&lookTarget)camera.lookAt(lookTarget);
+  if(started&&!inspecting&&!ending&&document.querySelector('#guide').hidden){
+    const dx=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
+    const dz=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
+    const desired=new T.Vector2(dx,dz).clampLength(0,1).multiplyScalar(1.65);
+    walking.lerp(desired,1-Math.exp(-dt*12));
+    const nx=camera.position.x+(walking.x*Math.cos(yaw)+walking.y*Math.sin(yaw))*dt;
+    const nz=camera.position.z+(-walking.x*Math.sin(yaw)+walking.y*Math.cos(yaw))*dt;
+    if(canWalk(nx,camera.position.z))camera.position.x=nx;
+    if(canWalk(camera.position.x,nz))camera.position.z=nz;
+  }else walking.set(0,0);
+  if(inspecting&&lookTarget){
+    viewTarget.position.copy(camera.position);
+    viewTarget.lookAt(lookTarget);
+  }else viewTarget.rotation.set(pitch,yaw,0,'YXZ');
+  camera.quaternion.slerp(viewTarget.quaternion,1-Math.exp(-dt*14));
+
 
   if(silhouette.visible&&threat>0){
     const [x,z]=courierRoute[threat-1];
